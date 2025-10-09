@@ -23,6 +23,9 @@ from cocoindex_code_mcp_server.backends import (
 from cocoindex_code_mcp_server.cocoindex_config import (
     code_embedding_flow,
     code_to_embedding,
+    graphcodebert_embedding,
+    unixcoder_embedding,
+    language_to_embedding_model,
 )
 from cocoindex_code_mcp_server.keyword_search_parser_lark import (
     KeywordSearchParser,
@@ -35,7 +38,8 @@ class HybridSearchEngine:
     def __init__(self, table_name: str, parser: KeywordSearchParser,
                  backend: Union[VectorStoreBackend, None] = None,
                  pool: Union[ConnectionPool, None] = None,
-                 embedding_func=None) -> None:
+                 embedding_func=None,
+                 embedding_model: str | None = None) -> None:
         # Support both new backend interface and legacy direct pool access
         if backend is not None:
             self.backend = backend
@@ -51,6 +55,12 @@ class HybridSearchEngine:
         self.parser = parser or KeywordSearchParser()
         self.embedding_func = embedding_func or (lambda q: code_to_embedding.eval(q))
 
+        # CRITICAL: Store embedding model to filter search results
+        # You cannot compare vectors from different embedding models!
+        # If not provided, use the default transformer model
+        from cocoindex_code_mcp_server.cocoindex_config import DEFAULT_TRANSFORMER_MODEL
+        self.embedding_model = embedding_model or DEFAULT_TRANSFORMER_MODEL
+
     @property
     def pool(self):
         """Access to the database connection pool via backend."""
@@ -61,26 +71,58 @@ class HybridSearchEngine:
         """Access to the table name via backend."""
         return getattr(self.backend, 'table_name', None)
 
+    def _get_embedding_function(self, embedding_model: str):
+        """
+        Select the appropriate embedding function based on the model name.
+
+        Args:
+            embedding_model: The embedding model identifier
+
+        Returns:
+            Callable that embeds text using the specified model
+        """
+        # Map model names to embedding functions
+        if 'graphcodebert' in embedding_model.lower():
+            return lambda q: graphcodebert_embedding.eval(q)
+        elif 'unixcoder' in embedding_model.lower():
+            return lambda q: unixcoder_embedding.eval(q)
+        else:
+            # Default to sentence-transformers model
+            return lambda q: code_to_embedding.eval(q)
+
     def search(
         self,
         vector_query: str,
         keyword_query: str,
         top_k: int = 10,
         vector_weight: float = 0.7,
-        keyword_weight: float = 0.3
+        keyword_weight: float = 0.3,
+        language: str | None = None,
+        embedding_model: str | None = None
     ) -> List[Dict[str, Any]]:
         """
         Perform hybrid search combining vector similarity and keyword filtering.
 
         Args:
-            vector_query: Text to embed and search for semantic similarity
+            vector_query: Text to embed and search for semantic similarity (empty string for keyword-only)
             keyword_query: Keyword search query for metadata filtering
             top_k: Number of results to return
             vector_weight: Weight for vector similarity score (0-1)
             keyword_weight: Weight for keyword match score (0-1)
+            language: Programming language to filter by (e.g., "Python", "Rust") - REQUIRED if vector_query is used
+            embedding_model: Specific embedding model to filter by (e.g., "microsoft/graphcodebert-base") - REQUIRED if vector_query is used
 
         Returns:
             List of search results with combined scoring
+
+        Note:
+            - For vector or hybrid search (when vector_query is not empty): You MUST provide either `language` OR `embedding_model`
+            - For keyword-only search (when vector_query is empty): language/embedding_model are OPTIONAL
+            - If `embedding_model` is provided, it takes precedence over `language`
+            - If `language` is provided, it will be mapped to the appropriate embedding model
+
+        Raises:
+            ValueError: If neither `language` nor `embedding_model` is provided when vector_query is used
         """
         # Parse keyword query
         search_group = self.parser.parse(keyword_query)
@@ -92,21 +134,50 @@ class HybridSearchEngine:
 
         # Use backend abstraction for search operations
         if vector_query.strip() and filters:
-            # Both vector and keyword search
-            query_vector = self.embedding_func(vector_query)
+            # Both vector and keyword search - REQUIRE language or embedding_model
+            if language is None and embedding_model is None:
+                raise ValueError(
+                    "Either 'language' or 'embedding_model' parameter is required for search. "
+                    "This ensures you only get results from the appropriate embedding model. "
+                    "Examples: language='Python', embedding_model='microsoft/graphcodebert-base'"
+                )
+
+            # Resolve embedding model to use for filtering
+            model_to_use = embedding_model or language_to_embedding_model(language)
+            embedding_func_to_use = self._get_embedding_function(model_to_use)
+
+            # Hybrid search with embedding
+            query_vector = embedding_func_to_use(vector_query)
             results = self.backend.hybrid_search(
                 query_vector=query_vector,
                 filters=filters,
                 top_k=top_k,
                 vector_weight=vector_weight,
-                keyword_weight=keyword_weight
+                keyword_weight=keyword_weight,
+                embedding_model=model_to_use  # CRITICAL: Filter by resolved embedding model
             )
         elif vector_query.strip():
-            # Vector search only
-            query_vector = self.embedding_func(vector_query)
-            results = self.backend.vector_search(query_vector=query_vector, top_k=top_k)
+            # Vector search only - REQUIRE language or embedding_model
+            if language is None and embedding_model is None:
+                raise ValueError(
+                    "Either 'language' or 'embedding_model' parameter is required for search. "
+                    "This ensures you only get results from the appropriate embedding model. "
+                    "Examples: language='Python', embedding_model='microsoft/graphcodebert-base'"
+                )
+
+            # Resolve embedding model to use for filtering
+            model_to_use = embedding_model or language_to_embedding_model(language)
+            embedding_func_to_use = self._get_embedding_function(model_to_use)
+
+            # Vector-only search
+            query_vector = embedding_func_to_use(vector_query)
+            results = self.backend.vector_search(
+                query_vector=query_vector,
+                top_k=top_k,
+                embedding_model=model_to_use  # CRITICAL: Filter by resolved embedding model
+            )
         elif filters:
-            # Keyword search only
+            # Keyword search only (no embedding model filter needed)
             results = self.backend.keyword_search(filters=filters, top_k=top_k)
         else:
             # No valid query

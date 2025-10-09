@@ -130,6 +130,7 @@ def save_search_results(
     query: Dict[str, Any],
     search_data: Dict[str, Any],
     run_timestamp: str,
+    test_type: str = "hybrid",
     results_base_dir: str = "/workspaces/rust/test-results"
 ) -> None:
     """
@@ -140,13 +141,14 @@ def save_search_results(
         query: The search query that was executed
         search_data: The search results data
         run_timestamp: Timestamp for consistent naming across test run
+        test_type: Type of search test ('keyword', 'vector', 'hybrid')
         results_base_dir: Base directory for test results
     """
     # Use the provided run timestamp for consistent naming across the test run
     filename = f"{test_name}_{run_timestamp}.json"
 
     # Ensure directory exists
-    results_dir = os.path.join(results_base_dir, "search-hybrid")
+    results_dir = os.path.join(results_base_dir, f"search-{test_type}")
     os.makedirs(results_dir, exist_ok=True)
 
     # Prepare complete result data
@@ -357,16 +359,17 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
         raise ValueError("DATABASE_URL or COCOINDEX_DATABASE_URL not found in environment")
 
     # Define table mappings
+    # PostgreSQL stores table names in lowercase, so we need to lowercase them for queries
     embeddings_tables = {
-        'keyword': 'keywordsearchtest_code_embeddings',
-        'vector': 'vectorsearchtest_code_embeddings',
-        'hybrid': 'hybridsearchtest_code_embeddings'
+        'keyword': 'keywordsearchtest_code_embeddings'.lower(),
+        'vector': 'vectorsearchtest_code_embeddings'.lower(),
+        'hybrid': 'hybridsearchtest_code_embeddings'.lower()
     }
 
     tracking_tables = {
-        'keyword': 'searchtest_keyword__cocoindex_tracking',
-        'vector': 'searchtest_vector__cocoindex_tracking',
-        'hybrid': 'searchtest_hybrid__cocoindex_tracking'
+        'keyword': 'searchtest_keyword__cocoindex_tracking'.lower(),
+        'vector': 'searchtest_vector__cocoindex_tracking'.lower(),
+        'hybrid': 'searchtest_hybrid__cocoindex_tracking'.lower()
     }
 
     # Determine which tables to clear
@@ -392,6 +395,9 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
     cur = conn.cursor()
 
     try:
+        # Use psycopg's sql module for safe identifier quoting
+        from psycopg import sql
+
         # Clear embeddings tables
         for table in tables_to_clear['embeddings']:
             # Check if table exists first
@@ -403,10 +409,10 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
             """, (table,))
             if cur.fetchone()[0]:
                 # Get count before truncating (for logging)
-                cur.execute(f"SELECT COUNT(*) FROM {table};")
+                cur.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table)))
                 count = cur.fetchone()[0]
                 # TRUNCATE is faster than DELETE and resets auto-increment
-                cur.execute(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;")
+                cur.execute(sql.SQL("TRUNCATE TABLE {} RESTART IDENTITY CASCADE").format(sql.Identifier(table)))
                 logging.info(f"✅ Truncated {table} ({count} records removed)")
             else:
                 logging.info(f"⚠️  Table {table} does not exist, skipping")
@@ -421,10 +427,10 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
             """, (table,))
             if cur.fetchone()[0]:
                 # Get count before truncating (for logging)
-                cur.execute(f"SELECT COUNT(*) FROM {table};")
+                cur.execute(sql.SQL("SELECT COUNT(*) FROM {}").format(sql.Identifier(table)))
                 count = cur.fetchone()[0]
                 # TRUNCATE is faster than DELETE and resets auto-increment
-                cur.execute(f"TRUNCATE TABLE {table} RESTART IDENTITY CASCADE;")
+                cur.execute(sql.SQL("TRUNCATE TABLE {} RESTART IDENTITY CASCADE").format(sql.Identifier(table)))
                 logging.info(f"✅ Truncated {table} ({count} records removed)")
             else:
                 logging.info(f"⚠️  Table {table} does not exist, skipping")
@@ -687,6 +693,8 @@ class CocoIndexTestInfrastructure:
         top_k = arguments.get("top_k", 10)
         vector_weight = arguments.get("vector_weight", 0.7)
         keyword_weight = arguments.get("keyword_weight", 0.3)
+        language = arguments.get("language")
+        embedding_model = arguments.get("embedding_model")
 
         try:
             # Use HybridSearchEngine which already converts to dictionaries
@@ -695,7 +703,9 @@ class CocoIndexTestInfrastructure:
                 keyword_query=keyword_query,
                 top_k=top_k,
                 vector_weight=vector_weight,
-                keyword_weight=keyword_weight
+                keyword_weight=keyword_weight,
+                language=language,
+                embedding_model=embedding_model
             )
 
             return {
@@ -883,9 +893,13 @@ async def run_cocoindex_hybrid_search_tests(
         description = test_case["description"]
         query = test_case["query"]
         expected_results = test_case["expected_results"]
+        fail_expected = test_case.get("fail_expected", False)
+        fail_reason = test_case.get("fail_reason", "")
 
         logging.info(f"Running hybrid search test: {test_name}")
         logging.info(f"Description: {description}")
+        if fail_expected:
+            logging.info(f"⚠️  Expected to fail: {fail_reason}")
 
         try:
             # Execute search using infrastructure
@@ -895,16 +909,21 @@ async def run_cocoindex_hybrid_search_tests(
             total_results = len(results)
 
             # Save search results to test-results directory
-            save_search_results(test_name, query, search_data, run_timestamp)
+            save_search_results(test_name, query, search_data, run_timestamp, test_type="hybrid")
 
             # Check minimum results requirement
             min_results = expected_results.get("min_results", 1)
             if total_results < min_results:
-                failed_tests.append({
-                    "test": test_name,
-                    "error": f"Expected at least {min_results} results, got {total_results}",
-                    "query": query
-                })
+                error_msg = f"Expected at least {min_results} results, got {total_results}"
+                if fail_expected:
+                    logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
+                    logging.info(f"   Failure: {error_msg}")
+                else:
+                    failed_tests.append({
+                        "test": test_name,
+                        "error": error_msg,
+                        "query": query
+                    })
                 continue
 
             # Check expected results using common helper
@@ -943,28 +962,37 @@ async def run_cocoindex_hybrid_search_tests(
                         except Exception as db_error:
                             logging.warning(f"Database comparison failed for hybrid search: {db_error}")
                             error_with_db_analysis = f"No matching result found for expected item: {expected_item}"
-                        
-                        failed_tests.append({
-                            "test": test_name,
-                            "error": error_with_db_analysis,
-                            "query": query,
-                            "actual_results": [{
-                                "filename": r.get("filename"),
-                                "metadata_summary": {
-                                    "classes": r.get("classes", []),
-                                    "functions": r.get("functions", []),
-                                    "imports": r.get("imports", []),
-                                    "analysis_method": r.get("metadata_json", {}).get("analysis_method", "unknown")
-                                }
-                            } for r in results[:3]]  # Show first 3 results for debugging
-                        })
+
+                        if fail_expected:
+                            logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
+                            logging.info(f"   Failure: {error_with_db_analysis}")
+                        else:
+                            failed_tests.append({
+                                "test": test_name,
+                                "error": error_with_db_analysis,
+                                "query": query,
+                                "actual_results": [{
+                                    "filename": r.get("filename"),
+                                    "metadata_summary": {
+                                        "classes": r.get("classes", []),
+                                        "functions": r.get("functions", []),
+                                        "imports": r.get("imports", []),
+                                        "analysis_method": r.get("metadata_json", {}).get("analysis_method", "unknown")
+                                    }
+                                } for r in results[:3]]  # Show first 3 results for debugging
+                            })
 
         except Exception as e:
-            failed_tests.append({
-                "test": test_name,
-                "error": f"Test execution failed: {str(e)}",
-                "query": query
-            })
+            error_msg = f"Test execution failed: {str(e)}"
+            if fail_expected:
+                logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
+                logging.info(f"   Failure: {error_msg}")
+            else:
+                failed_tests.append({
+                    "test": test_name,
+                    "error": error_msg,
+                    "query": query
+                })
 
     return failed_tests
 
@@ -1003,8 +1031,7 @@ async def run_cocoindex_vector_search_tests(
               total_results = len(results)
 
               # Save search results to test-results directory
-              save_search_results(test_name, query, search_data, run_timestamp,
-  "search-vector")
+              save_search_results(test_name, query, search_data, run_timestamp, test_type="vector")
 
               # Check minimum results requirement
               min_results = expected_results.get("min_results", 1)
