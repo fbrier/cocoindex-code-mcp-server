@@ -26,7 +26,12 @@ class MockCocoIndex:
     class functions:
         @staticmethod
         def SentenceTransformerEmbed(model, args=None):
-            return Mock(model=model, args=args or {})
+            # Create a simple mock-like object
+            class MockEmbed:
+                def __init__(self, model, args):
+                    self.model = model
+                    self.args = args
+            return MockEmbed(model=model, args=args or {})
 
     class utils:
         @staticmethod

@@ -155,6 +155,9 @@ class EnhancedHaskellChunker:
     """
     Enhanced Haskell chunker inspired by ASTChunk techniques.
     Provides configurable chunking with rich metadata and multiple fallback strategies.
+
+    Note: This class is deprecated but still used internally by HaskellChunkExecutor
+    as a fallback implementation when Rust-based chunking fails.
     """
 
     def __init__(self, config: Optional[HaskellChunkConfig] = None) -> None:
@@ -558,8 +561,9 @@ class CompatibleChunk:
 def extract_haskell_ast_chunks(content: str) -> List[Dict[str, Any]]:
     """
     Enhanced AST-based Haskell chunking using the fixed Rust implementation.
-    
-    This function maintains backward compatibility for existing usage points.
+
+    This function maintains backward compatibility for existing usage points and is
+    still used internally by utility code (ast_chunking.py, cocoindex_config.py).
 
     Args:
         content: Haskell source code
@@ -588,15 +592,22 @@ def extract_haskell_ast_chunks(content: str) -> List[Dict[str, Any]]:
             legacy_chunks.append(legacy_chunk)
 
         # Check if chunks have function metadata before claiming success
-        chunks_with_functions = sum(1 for chunk in legacy_chunks 
-                                  if isinstance(chunk.get('metadata', {}), dict) 
-                                  and 'function_name' in chunk['metadata'])
-        
+        chunks_with_functions = 0
+        for legacy_chunk in legacy_chunks:
+            chunk_metadata = legacy_chunk.get('metadata', {})
+            if isinstance(chunk_metadata, dict) and 'function_name' in chunk_metadata:
+                chunks_with_functions += 1
+
         if chunks_with_functions > 0:
             LOGGER.info(f"✅ Rust Haskell chunking produced {len(legacy_chunks)} chunks, {chunks_with_functions} with function metadata")
         else:
             LOGGER.warning(f"⚠️ Rust Haskell chunking produced {len(legacy_chunks)} chunks but NO function metadata - likely using regex fallback")
-            LOGGER.debug(f"Sample chunk metadata keys: {list(legacy_chunks[0]['metadata'].keys()) if legacy_chunks and 'metadata' in legacy_chunks[0] else 'none'}")
+            if legacy_chunks:
+                first_chunk = legacy_chunks[0]
+                if 'metadata' in first_chunk and isinstance(first_chunk['metadata'], dict):
+                    LOGGER.debug(f"Sample chunk metadata keys: {list(first_chunk['metadata'].keys())}")
+                else:
+                    LOGGER.debug("Sample chunk metadata keys: none")
         return legacy_chunks
 
     except Exception as e:

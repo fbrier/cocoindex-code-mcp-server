@@ -378,35 +378,48 @@ def extract_code_metadata(text: str, language: str, filename: str = "", existing
                     # Modern Haskell analysis using AST chunks
                     from .lang.haskell.haskell_ast_chunker import extract_haskell_ast_chunks
                     chunks = extract_haskell_ast_chunks(text)
-                    
-                    # Extract aggregated metadata from chunks  
-                    functions = []
-                    classes = []
-                    data_types = []
-                    modules = []
-                    
+
+                    # Extract aggregated metadata from chunks
+                    functions = set()
+                    classes: List[str] = []
+                    data_types: List[str] = []
+                    modules = set()
+
                     for chunk in chunks:
                         if isinstance(chunk, dict) and 'metadata' in chunk:
                             chunk_meta = chunk['metadata']
+                            # Extract function names from metadata
                             if 'function_name' in chunk_meta:
-                                func_name = chunk_meta['function_name'] 
-                                if func_name not in functions:
-                                    functions.append(func_name)
-                            if 'class_name' in chunk_meta:
-                                class_name = chunk_meta['class_name']
-                                if class_name not in classes:
-                                    classes.append(class_name)
+                                functions.add(chunk_meta['function_name'])
+                            # Extract functions array if present
+                            if 'functions' in chunk_meta:
+                                try:
+                                    funcs = json.loads(chunk_meta['functions']) if isinstance(chunk_meta['functions'], str) else chunk_meta['functions']
+                                    functions.update(funcs)
+                                except:
+                                    pass
+                            # Extract modules array if present
+                            if 'modules' in chunk_meta:
+                                try:
+                                    mods = json.loads(chunk_meta['modules']) if isinstance(chunk_meta['modules'], str) else chunk_meta['modules']
+                                    modules.update(mods)
+                                except:
+                                    pass
+                            # Extract single module_name if present
                             if 'module_name' in chunk_meta:
-                                module_name = chunk_meta['module_name']
-                                if module_name not in modules:
-                                    modules.append(module_name)
-                    
+                                modules.add(chunk_meta['module_name'])
+                            # Extract classes
+                            if 'class_name' in chunk_meta and chunk_meta['class_name'] not in classes:
+                                classes.append(chunk_meta['class_name'])
+
                     metadata = {
-                        "analysis_method": "rust_haskell_ast",
-                        "functions": functions,
+                        "success": True,
+                        "language": "Haskell",
+                        "analysis_method": "haskell_chunk_visitor",
+                        "functions": list(functions),
                         "classes": classes,
                         "data_types": data_types,
-                        "modules": modules,
+                        "modules": list(modules),
                         "imports": [],
                         "has_classes": len(classes) > 0,
                         "has_module": len(modules) > 0,
@@ -1325,7 +1338,9 @@ def get_embedding_model_name(model_group: str) -> str:
         The actual model identifier (e.g., 'microsoft/graphcodebert-base')
     """
     if model_group in LANGUAGE_MODEL_GROUPS:
-        return LANGUAGE_MODEL_GROUPS[model_group]['model']
+        model = LANGUAGE_MODEL_GROUPS[model_group]['model']
+        assert isinstance(model, str), f"Model must be str, got {type(model)}"
+        return model
     # Fallback to default model if group not found
     return DEFAULT_TRANSFORMER_MODEL
 
@@ -1359,10 +1374,14 @@ def language_to_embedding_model(language: str) -> str:
         if group_name == 'fallback':
             continue  # Handle fallback last
         if lang_lower in group_info['languages']:
-            return group_info['model']
+            model = group_info['model']
+            assert isinstance(model, str), f"Model must be str, got {type(model)}"
+            return model
 
     # Default to fallback model for unrecognized languages
-    return LANGUAGE_MODEL_GROUPS['fallback']['model']
+    fallback_model = LANGUAGE_MODEL_GROUPS['fallback']['model']
+    assert isinstance(fallback_model, str), f"Fallback model must be str, got {type(fallback_model)}"
+    return fallback_model
 
 
 @cocoindex.op.function()
