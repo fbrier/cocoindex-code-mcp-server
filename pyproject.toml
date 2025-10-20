@@ -6,7 +6,30 @@ build-backend = "maturin"
 name = "cocoindex_code_mcp_server"
 version = "0.1.0"
 description = "RAG based on cocoindex as MCP server (streamingHttp), with Haskell support"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Rust",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Topic :: Software Development",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Text Processing :: Indexing",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Science/Research",
+]
 requires-python = ">=3.11"
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [{ name = "aanno", email = "aanno@users.noreply.github.com" }]
 package = { include = ["src/cocoindex_code_mcp_server/**/*.py"] }
 dependencies = [
     "cocoindex[embeddings]>=0.1.63", 
@@ -16,7 +39,8 @@ dependencies = [
     "psycopg_pool>=3.1.0",
     "pgvector>=0.4.1",
     "numpy>=2.3.1",
-    "astchunk @ git+https://github.com/yilinjz/astchunk.git",
+    # "astchunk @ git+https://github.com/yilinjz/astchunk.git",
+    "astchunk>=0.1.0",
     "lark-parser>=0.12.0",
     "prompt-toolkit>=3.0.0",
     "cachetools>=6.1.0",
@@ -33,11 +57,18 @@ dependencies = [
     "tree-sitter-javascript>=0.23.1,<0.24.0",  # 0.25.0 uses language v15, incompatible with tree-sitter v14
 ]
 
+[project.scripts]
+mcp-server = "cocoindex_code_mcp_server.main_mcp_server:main"
+
+[project.urls]
+Homepage = "https://github.com/aanno/cocoindex-code-mcp-server"
+Issues = "https://github.com/aanno/cocoindex-code-mcp-server/issues"
+
 [project.optional-dependencies]
 test = [
     # testing
     "pytest>=8.4.1",
-    "pytest-cov>=6.2.1",
+    "pytest-cov>=7.0.0",
     "pytest-asyncio>=1.1.0",
     "pytest-mock>=3.10.0",
     "pytest-timeout>=2.1.0",
@@ -61,7 +92,6 @@ build = [
     "autopep8>=2.0.0",
     "flake8>=7.3.0",
     "autopep8>=2.0.0",
-    "isort>=6.0.1",
     # dependency management
     "pipdeptree>=2.8.0",
     "deptry>=0.14.0",
@@ -70,13 +100,23 @@ build = [
     "ruff>=0.4.0",
     # "asyncpg>=0.29.0",
 ]
+# github actions for building wheels or local act including pypi publishing
+act = [
+    "twine>=6.2.0",
+    "maturin[patchelf]>=1.0,<2.0",
+    "auditwheel>=6.2.0",
+    "abi3audit>=0.0.22",
+    "cibuildwheel>=3.2.1",
+    "delvewheel>=1.11.2",
+    "delocate>=0.8.1",
+]
 
 [tool.maturin]
 features = ["pyo3/extension-module"]
 module-name = "cocoindex_code_mcp_server"
 manifest-path = "rust/Cargo.toml"
 bindings = "pyo3"
-compatibility = "linux"  # or linux, macos, etc.
+compatibility = "manylinux_2_28"  # or linux, macos, etc.
 python-source = "src"
 include = ["src/cocoindex_code_mcp_server/**/*.py"]
 
