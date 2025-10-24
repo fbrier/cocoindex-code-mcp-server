@@ -22,7 +22,7 @@ build-backend = "maturin"
 
 [project]
 name = "cocoindex_code_mcp_server"
-version = "0.1.0"
+version = "0.2.0"
 description = "RAG based on cocoindex as MCP server (streamingHttp), with Haskell support"
 classifiers = [
     "Programming Language :: Python :: 3",

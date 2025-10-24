@@ -8,6 +8,7 @@ __pycache__/
 /tmp/
 .dmypy.json
 /artifacts/
+/.env
 
 # Python (and python cache)
 *.pyc

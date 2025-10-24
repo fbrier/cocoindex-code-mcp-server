@@ -18,20 +18,25 @@ Currently uses PostgreSQL + pgvector as the vector database backend, but can be 
 
 ## Quickstart
 
-### 1. Clone the Repository
+### 1. Clone the Repository (optional)
 
 ```bash
 git clone --recursive https://github.com/aanno/cocoindex-code-mcp-server.git
 cd cocoindex-code-mcp-server
 ```
 
+Checking out the sources is _not_ strictly necessary if you just want to use the MCP server, as it can be installed
+from PyPI. However, there are some scripts e.g. for starting the pgvector database that are missing from the PyPI
+package.
+
 ### 2. Install
 
-Install from PyPI or build from source using maturin:
+Build from source using maturin:
 
 ```bash
 # Install dependencies from PyPI
-pip install -e .
+uv sync
+uv sync --all-extras
 
 # And build from source
 maturin develop
@@ -42,6 +47,10 @@ Or simple install from PyPI:
 ```bash
 pip install cocoindex-code-mcp-server
 ```
+
+I provide native wheels for many systems (including Linux, Windows and MacOS) on PyPI, so no build should be necessary
+in most cases. cocoindex-code-mcp-server needs Python 3.11+ (and I prefer to build abi3 wheels for better
+compatibility).
 
 ### 3. Start the PostgreSQL Database
 
@@ -54,7 +63,22 @@ cd cocoindex-code-mcp-server
 ./scripts/install-pgvector.py
 ```
 
-### 4. Start the MCP Server
+Using the scripts is optional, however you need a running PostgreSQL + pgvector database for the MCP server to work.
+
+### 4. Configure the MCP Server (DB Connection)
+
+cocoindex_code_mcp_server uses the `COCOINDEX_DATABASE_URL` environment variable to connect to the database.
+It reads the `.env` file in the current directory if present. You can copy the provided `.env.template` to `.env` and
+adjust the connection string if needed.
+
+The current directory does not need to be the directory that you want to scan (see section 'Command Line Arguments'
+below for details).
+
+```bash
+cp .env.template .env
+```
+
+### 5. Start the MCP Server
 
 In another terminal, start the cocoindex_code_mcp_server:
 
@@ -69,7 +93,10 @@ The server will index the code in the specified directory and start serving requ
 CodeEmbedding.files (batch update): 1505 source rows NO CHANGE
 ```
 
-### 5. Use the MCP Server
+The PyPI package does provide starting server with `cocoindex-code-mcp-server <options> <root-source-dir>`. Remember
+that you need a running PostgreSQL + pgvector database for this to work.
+
+### 6. Use the MCP Server
 
 You can now use the RAG server running at `http://localhost:3033` as a streaming HTTP MCP server. For example, with Claude Code, use the following snippet within `"mcpServers"` in your `.mcp.json` file:
 
@@ -228,20 +255,14 @@ For more technical details, see:
 
 - Rust (latest stable version)
 - Python 3.11+
-- Maturin (`pip install maturin`)
+- Maturin (build tool for Python extensions in Rust)
 - PostgreSQL with pgvector extension
 - Tree-sitter language parsers (automatically installed via pyproject.toml)
 
-### Building from Source
+### Run tests
 
 ```bash
-# 1. Build and install the Haskell tree-sitter extension
-maturin develop
-
-# 2. Install development dependencies
-pip install -e . ".[test]" ".[mcp-server]" ".[build]"
-
-# 3. Run tests to verify installation
+# Run tests to verify installation
 pytest -c pytest.ini tests/
 ```
 
@@ -315,7 +336,7 @@ Contributions are welcome! Please open issues and pull requests on the [GitHub r
 
 ## License
 
-AGPL-3.0
+AGPL-3.0 or later
 
 ## Links
 
