@@ -71,7 +71,7 @@ graph TD
 
 - **GraphCodeBERT**: For Python, JavaScript, TypeScript, Java
 - **UniXcoder**: For C++, C#, Go, Rust
-- **Fallback Model**: sentence-transformers/all-MiniLM-L6-v2 for other languages
+- **Fallback Model**: sentence-transformers/all-mpnet-base-v2 for other languages
 
 #### Configuration Options
 
@@ -123,7 +123,7 @@ CREATE TABLE code_embeddings (
 #### Vector Indexing
 
 - **Type**: pgvector with COSINE similarity
-- **Dimension**: 384 (sentence-transformers/all-MiniLM-L6-v2)
+- **Dimension**: 768D (sentence-transformers/all-mpnet-base-v2)
 - **Performance**: Enables fast similarity search
 
 ## Data Transformations

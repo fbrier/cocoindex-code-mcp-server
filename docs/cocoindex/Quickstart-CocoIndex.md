@@ -74,7 +74,7 @@ def text_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoind
             # Embed the chunk, put into `embedding` field
             chunk["embedding"] = chunk["text"].transform(
                 cocoindex.functions.SentenceTransformerEmbed(
-                    model="sentence-transformers/all-MiniLM-L6-v2"))
+                    model="sentence-transformers/all-mpnet-base-v2"))
 
             # Collect the chunk into the collector.
             doc_embeddings.collect(filename=doc["filename"], location=chunk["location"],
@@ -154,7 +154,7 @@ import numpy as np
 def text_to_embedding(text: cocoindex.DataSlice[str]) -> cocoindex.DataSlice[NDArray[np.float32]]:
     return text.transform(
         cocoindex.functions.SentenceTransformerEmbed(
-            model="sentence-transformers/all-MiniLM-L6-v2"))
+            model="sentence-transformers/all-mpnet-base-v2"))
 ```
 
 `cocoindex.DataSlice[str]` represents certain data in the flow (e.g. a field in a data scope), with type `str` at runtime. Similar to the `text_embedding_flow()` above, the `text_to_embedding()` is also to constructing the flow instead of directly doing computation, so the type it takes is `cocoindex.DataSlice[str]` instead of `str`. See [Data Slice](https://cocoindex.io/docs/core/flow_def#data-slice) for more details.

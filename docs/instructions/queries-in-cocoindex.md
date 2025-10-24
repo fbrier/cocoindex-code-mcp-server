@@ -276,7 +276,7 @@ import numpy as np
 def text_to_embedding(text: cocoindex.DataSlice[str]) -> cocoindex.DataSlice[NDArray[np.float32]]:
     return text.transform(
         cocoindex.functions.SentenceTransformerEmbed(
-            model="sentence-transformers/all-MiniLM-L6-v2"))
+            model="sentence-transformers/all-mpnet-base-v2"))
 
 # 2. Get the default table name for the export target in your flow
 table_name = cocoindex.utils.get_target_default_name(text_embedding_flow, "doc_embeddings")

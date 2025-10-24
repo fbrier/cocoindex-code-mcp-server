@@ -45,7 +45,7 @@ def verify_implementation():
             ("rust", "microsoft/unixcoder-base"),
             ("javascript", "microsoft/graphcodebert-base"),
             ("typescript", "microsoft/unixcoder-base"),
-            ("haskell", "sentence-transformers/all-MiniLM-L6-v2"),
+            ("haskell", "sentence-transformers/all-mpnet-base-v2"),
         ]
 
         print("   Language → Model Selection:")

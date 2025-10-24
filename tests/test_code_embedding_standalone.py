@@ -32,7 +32,7 @@ class MockCodeEmbeddingExecutor:
     }
 
     def __init__(self, force_model: Optional[str] = None,
-                 fallback_model: str = "sentence-transformers/all-MiniLM-L6-v2"):
+                 fallback_model: str = "sentence-transformers/all-mpnet-base-v2"):
         self.force_model = force_model
         self.fallback_model = fallback_model
 
@@ -325,9 +325,9 @@ class TestLanguageSpecificConfigurations:
             "dart": "microsoft/unixcoder-base",
 
             # Fallback languages
-            "haskell": "sentence-transformers/all-MiniLM-L6-v2",
-            "ocaml": "sentence-transformers/all-MiniLM-L6-v2",
-            "unknown": "sentence-transformers/all-MiniLM-L6-v2",
+            "haskell": "sentence-transformers/all-mpnet-base-v2",
+            "ocaml": "sentence-transformers/all-mpnet-base-v2",
+            "unknown": "sentence-transformers/all-mpnet-base-v2",
         }
 
         for language, expected_model in expected_mappings.items():
@@ -349,7 +349,7 @@ class TestIntegrationScenarios:
             (".ts", "typescript", "microsoft/unixcoder-base"),
             (".java", "java", "microsoft/graphcodebert-base"),
             (".kt", "kotlin", "microsoft/unixcoder-base"),
-            (".hs", "haskell", "sentence-transformers/all-MiniLM-L6-v2"),
+            (".hs", "haskell", "sentence-transformers/all-mpnet-base-v2"),
         ]
 
         for file_ext, expected_lang, expected_model in test_scenarios:

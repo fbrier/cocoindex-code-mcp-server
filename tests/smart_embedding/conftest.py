@@ -199,9 +199,9 @@ def expected_model_mappings():
         'dart': 'microsoft/unixcoder-base',
 
         # Fallback languages
-        'haskell': 'sentence-transformers/all-MiniLM-L6-v2',
-        'ocaml': 'sentence-transformers/all-MiniLM-L6-v2',
-        'fortran': 'sentence-transformers/all-MiniLM-L6-v2',
+        'haskell': 'sentence-transformers/all-mpnet-base-v2',
+        'ocaml': 'sentence-transformers/all-mpnet-base-v2',
+        'fortran': 'sentence-transformers/all-mpnet-base-v2',
     }
 
 

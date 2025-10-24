@@ -58,7 +58,7 @@ class TestLanguageModelSelector:
     def test_initialization(self):
         """Test that selector initializes correctly."""
         selector = LanguageModelSelector()
-        assert selector.fallback_model == "sentence-transformers/all-MiniLM-L6-v2"
+        assert selector.fallback_model == "sentence-transformers/all-mpnet-base-v2"
 
         custom_selector = LanguageModelSelector(fallback_model="custom-model")
         assert custom_selector.fallback_model == "custom-model"
@@ -163,7 +163,7 @@ class TestLanguageModelSelector:
             (".rs", "microsoft/unixcoder-base"),
             (".js", "microsoft/graphcodebert-base"),
             (".ts", "microsoft/unixcoder-base"),
-            (".hs", "sentence-transformers/all-MiniLM-L6-v2"),  # fallback
+            (".hs", "sentence-transformers/all-mpnet-base-v2"),  # fallback
         ]
 
         for extension, expected_model in test_cases:
@@ -187,7 +187,7 @@ class TestLanguageModelSelector:
         assert result_args["trust_remote_code"] == True
 
         # Test non-Microsoft model doesn't get trust_remote_code automatically
-        general_args = selector.get_model_args("sentence-transformers/all-MiniLM-L6-v2")
+        general_args = selector.get_model_args("sentence-transformers/all-mpnet-base-v2")
         assert "trust_remote_code" not in general_args
 
 
@@ -233,7 +233,7 @@ class TestExternalAPIFunctions:
         result = create_smart_code_embedding(language="haskell")
 
         # Verify it uses fallback model
-        assert result.model == "sentence-transformers/all-MiniLM-L6-v2"
+        assert result.model == "sentence-transformers/all-mpnet-base-v2"
         assert result.args == {}
 
     def test_get_supported_languages(self):
@@ -274,7 +274,7 @@ class TestIntegrationScenarios:
             (".ts", "typescript", "microsoft/unixcoder-base"),
             (".java", "java", "microsoft/graphcodebert-base"),
             (".kt", "kotlin", "microsoft/unixcoder-base"),
-            (".hs", "haskell", "sentence-transformers/all-MiniLM-L6-v2"),
+            (".hs", "haskell", "sentence-transformers/all-mpnet-base-v2"),
         ]
 
         for file_ext, expected_lang, expected_model in test_scenarios:
@@ -320,9 +320,9 @@ class TestIntegrationScenarios:
             "dart": "microsoft/unixcoder-base",
 
             # Fallback languages
-            "haskell": "sentence-transformers/all-MiniLM-L6-v2",
-            "ocaml": "sentence-transformers/all-MiniLM-L6-v2",
-            "unknown": "sentence-transformers/all-MiniLM-L6-v2",
+            "haskell": "sentence-transformers/all-mpnet-base-v2",
+            "ocaml": "sentence-transformers/all-mpnet-base-v2",
+            "unknown": "sentence-transformers/all-mpnet-base-v2",
         }
 
         for language, expected_model in expected_mappings.items():

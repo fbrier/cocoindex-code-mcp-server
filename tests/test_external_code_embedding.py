@@ -6,7 +6,6 @@ Tests the smart_code_embedding module without modifying CocoIndex.
 """
 
 import pytest
-
 from cocoindex_code_mcp_server.smart_code_embedding import (
     LanguageModelSelector,
     create_python_embedding,
@@ -23,7 +22,7 @@ class TestLanguageModelSelector:
     def test_initialization(self):
         """Test that selector initializes correctly."""
         selector = LanguageModelSelector()
-        assert selector.fallback_model == "sentence-transformers/all-MiniLM-L6-v2"
+        assert selector.fallback_model == "sentence-transformers/all-mpnet-base-v2"
 
         custom_selector = LanguageModelSelector(fallback_model="custom-model")
         assert custom_selector.fallback_model == "custom-model"
@@ -146,7 +145,7 @@ class TestLanguageModelSelector:
             (".rs", "microsoft/unixcoder-base"),
             (".js", "microsoft/graphcodebert-base"),
             (".ts", "microsoft/unixcoder-base"),
-            (".hs", "sentence-transformers/all-MiniLM-L6-v2"),  # fallback
+            (".hs", "sentence-transformers/all-mpnet-base-v2"),  # fallback
         ]
 
         for extension, expected_model in test_cases:
@@ -170,7 +169,7 @@ class TestLanguageModelSelector:
         assert result_args["trust_remote_code"] == True
 
         # Test non-Microsoft model doesn't get trust_remote_code automatically
-        general_args = selector.get_model_args("sentence-transformers/all-MiniLM-L6-v2")
+        general_args = selector.get_model_args("sentence-transformers/all-mpnet-base-v2")
         assert "trust_remote_code" not in general_args
 
 
@@ -237,7 +236,7 @@ class TestExternalAPIFunctions:
 
         # Verify it was called with fallback model
         mock_cocoindex.functions.SentenceTransformerEmbed.assert_called_with(
-            model="sentence-transformers/all-MiniLM-L6-v2",
+            model="sentence-transformers/all-mpnet-base-v2",
             args={}
         )
         assert result == mock_embed_func
@@ -300,7 +299,7 @@ class TestIntegrationScenarios:
             (".ts", "typescript", "microsoft/unixcoder-base"),
             (".java", "java", "microsoft/graphcodebert-base"),
             (".kt", "kotlin", "microsoft/unixcoder-base"),
-            (".hs", "haskell", "sentence-transformers/all-MiniLM-L6-v2"),
+            (".hs", "haskell", "sentence-transformers/all-mpnet-base-v2"),
         ]
 
         for file_ext, expected_lang, expected_model in test_scenarios:

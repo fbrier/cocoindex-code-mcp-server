@@ -522,7 +522,7 @@ def code_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoind
         # The text field is used for embedding
         chunk["embedding"] = chunk["text"].transform(
             cocoindex.functions.SentenceTransformerEmbed(
-                model="sentence-transformers/all-MiniLM-L6-v2"
+                model="sentence-transformers/all-mpnet-base-v2"
             )
         )
         # Collect all data fields, including metadata, for later retrieval
@@ -598,7 +598,7 @@ You specify which embedding model to use in the pipeline—just after chunking a
 ```python
 chunk["embedding"] = chunk["text"].transform(
     cocoindex.functions.SentenceTransformerEmbed(
-        model="sentence-transformers/all-MiniLM-L6-v2"
+        model="sentence-transformers/all-mpnet-base-v2"
     )
 )
 ```
@@ -626,7 +626,7 @@ chunk["embedding_codebert"] = chunk["text"].transform(
     cocoindex.functions.HuggingfaceEmbed(model="microsoft/codebert-base")
 )
 chunk["embedding_st"] = chunk["text"].transform(
-    cocoindex.functions.SentenceTransformerEmbed(model="all-MiniLM-L6-v2")
+    cocoindex.functions.SentenceTransformerEmbed(model="all-mpnet-base-v2")
 )
 ```
 

@@ -204,7 +204,7 @@ Database table structure and schema information.
 
 ### Embedding Model
 
-- Uses SentenceTransformer `all-MiniLM-L6-v2` (384 dimensions)
+- Uses SentenceTransformer `all-mpnet-base-v2` (768D dimensions)
 - Cached embeddings to avoid recomputation
 - Batch processing for multiple queries
 

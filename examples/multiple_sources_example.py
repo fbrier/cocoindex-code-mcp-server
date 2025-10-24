@@ -59,7 +59,7 @@ def multiple_sources_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoi
 
         with py_file["chunks"].row() as chunk:
             chunk["embedding"] = chunk["text"].transform(
-                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-MiniLM-L6-v2")
+                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2")
             )
             code_embeddings.collect(
                 filename=py_file["filename"],
@@ -81,7 +81,7 @@ def multiple_sources_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoi
 
         with rs_file["chunks"].row() as chunk:
             chunk["embedding"] = chunk["text"].transform(
-                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-MiniLM-L6-v2")
+                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2")
             )
             code_embeddings.collect(
                 filename=rs_file["filename"],

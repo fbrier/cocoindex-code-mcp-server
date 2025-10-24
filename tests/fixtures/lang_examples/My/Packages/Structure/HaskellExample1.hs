@@ -1,5 +1,5 @@
 -- Test Haskell file for fallback embedding verification.
--- This should use sentence-transformers/all-MiniLM-L6-v2 model.
+-- This should use sentence-transformers/all-mpnet-base-v2 model.
 
 module My.Packages.Structure.HaskellExample1 where
 

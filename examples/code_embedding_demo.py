@@ -200,7 +200,7 @@ def demonstrate_model_selection():
         ("typescript", ".ts", "microsoft/unixcoder-base"),
         ("java", ".java", "microsoft/graphcodebert-base"),
         ("kotlin", ".kt", "microsoft/unixcoder-base"),
-        ("haskell", ".hs", "sentence-transformers/all-MiniLM-L6-v2"),  # fallback
+        ("haskell", ".hs", "sentence-transformers/all-mpnet-base-v2"),  # fallback
     ]
 
     print("Language → Extension → Selected Model")
@@ -314,7 +314,7 @@ with file["chunks"].row() as chunk:
     # General-purpose embedding for broad semantic search
     chunk["embedding_general"] = chunk["text"].transform(
         cocoindex.functions.SentenceTransformerEmbed(
-            model="sentence-transformers/all-MiniLM-L6-v2"
+            model="sentence-transformers/all-mpnet-base-v2"
         )
     )
 
@@ -355,7 +355,7 @@ def get_embedding_config(language: str):
         # Fallback configuration
         return {
             "model": cocoindex.functions.SentenceTransformerEmbed(
-                model="sentence-transformers/all-MiniLM-L6-v2"
+                model="sentence-transformers/all-mpnet-base-v2"
             ),
             "chunk_size": 800,  # Smaller chunks for less supported languages
         }

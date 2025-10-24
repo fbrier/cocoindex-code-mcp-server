@@ -37,7 +37,7 @@ chunk["embedding"] = chunk["text"].transform(embedding_func)
 |---|---|---|---|
 | **GraphCodeBERT** | Python, Java, JavaScript, PHP, Ruby, Go, C, C++ | `microsoft/graphcodebert-base` | `.py`, `.java`, `.js`, `.php`, `.rb`, `.go`, `.c`, `.cpp` |
 | **UniXcode** | Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart | `microsoft/unixcoder-base` | `.rs`, `.ts`, `.cs`, `.kt`, `.scala`, `.swift`, `.dart` |
-| **Fallback** | Haskell, OCaml, others | `sentence-transformers/all-MiniLM-L6-v2` | `.hs`, `.ml`, others |
+| **Fallback** | Haskell, OCaml, others | `sentence-transformers/all-mpnet-base-v2` | `.hs`, `.ml`, others |
 
 ### ✅ **External API Functions**
 
@@ -144,7 +144,7 @@ def create_smart_code_embedding(file_extension=".py"):
 # Before: Generic embedding
 chunk["embedding"] = chunk["text"].transform(
     cocoindex.functions.SentenceTransformerEmbed(
-        model="sentence-transformers/all-MiniLM-L6-v2"
+        model="sentence-transformers/all-mpnet-base-v2"
     )
 )
 

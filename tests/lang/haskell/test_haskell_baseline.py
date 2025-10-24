@@ -4,7 +4,6 @@
 from typing import Set
 
 import pytest
-
 from cocoindex_code_mcp_server.ast_visitor import analyze_code
 from cocoindex_code_mcp_server.language_handlers.haskell_handler import (
     analyze_haskell_code,
@@ -20,7 +19,7 @@ class TestHaskellBaseline:
     def haskell_code(self):
         """Test Haskell code fixture."""
         return '''-- Test Haskell file for fallback embedding verification.
--- This should use sentence-transformers/all-MiniLM-L6-v2 model.
+-- This should use sentence-transformers/all-mpnet-base-v2 model.
 
 module TestHaskell where
 

@@ -14,9 +14,9 @@ from typing import Literal
 import numpy as np
 
 @cocoindex.op.function()
-def embed_text(text: str) -> Vector[np.float32, Literal[384]]:
+def embed_text(text: str) -> Vector[np.float32, Literal[768]]:
     """Must use Vector type with dimension for pgvector compatibility."""
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
     embedding = model.encode(text)
     return embedding.astype(np.float32)  # Return numpy array, not .tolist()
 ```
@@ -99,9 +99,9 @@ NDArray[np.float32], NDArray[np.int64]
 
 ```python
 @cocoindex.op.function()
-def embed_code(code: str) -> Vector[np.float32, Literal[384]]:
+def embed_code(code: str) -> Vector[np.float32, Literal[768]]:
     """Fixed dimension required for pgvector indexes."""
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
     embedding = model.encode(code)
     return embedding.astype(np.float32)  # NOT .tolist()
 ```
@@ -177,10 +177,10 @@ cocoindex setup src/your_config.py
 from sentence_transformers import SentenceTransformer
 
 # Load once at import time
-model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
 
 @cocoindex.op.function()
-def embed_text(text: str) -> Vector[np.float32, Literal[384]]:
+def embed_text(text: str) -> Vector[np.float32, Literal[768]]:
     """Use global model instance."""
     embedding = model.encode(text)
     return embedding.astype(np.float32)
@@ -190,9 +190,9 @@ def embed_text(text: str) -> Vector[np.float32, Literal[384]]:
 
 ```python
 @cocoindex.op.function()
-def embed_text(text: str) -> Vector[np.float32, Literal[384]]:
+def embed_text(text: str) -> Vector[np.float32, Literal[768]]:
     # BAD: Loads model every time
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    model = SentenceTransformer("sentence-transformers/all-mpnet-base-v2")
     embedding = model.encode(text)
     return embedding.astype(np.float32)
 ```

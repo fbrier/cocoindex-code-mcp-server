@@ -109,7 +109,7 @@ For unsupported languages (e.g., Haskell, OCaml, Erlang), the system falls back 
 class CodeEmbedding(op.FunctionSpec):
     language: str | None = None              # Programming language
     force_model: str | None = None           # Override model selection
-    fallback_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    fallback_model: str = "sentence-transformers/all-mpnet-base-v2"
     model_args: dict[str, Any] | None = None # Additional model arguments
 ```
 
@@ -120,7 +120,7 @@ class CodeEmbedding(op.FunctionSpec):
 class SmartCodeEmbedding(op.FunctionSpec):
     file_extension: str | None = None        # File extension for language detection
     language_hint: str | None = None         # Override auto-detection
-    fallback_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    fallback_model: str = "sentence-transformers/all-mpnet-base-v2"
     model_args: dict[str, Any] | None = None # Additional model arguments
 ```
 
@@ -135,7 +135,7 @@ with file["chunks"].row() as chunk:
     # General purpose embedding
     chunk["embedding_general"] = chunk["text"].transform(
         cocoindex.functions.SentenceTransformerEmbed(
-            model="sentence-transformers/all-MiniLM-L6-v2"
+            model="sentence-transformers/all-mpnet-base-v2"
         )
     )
 
@@ -183,7 +183,7 @@ def get_embedding_function(extension: str):
     else:
         # Use general-purpose for others
         return cocoindex.functions.SentenceTransformerEmbed(
-            model="sentence-transformers/all-MiniLM-L6-v2"
+            model="sentence-transformers/all-mpnet-base-v2"
         )
 
 # In your flow
@@ -238,7 +238,7 @@ Existing code using `SentenceTransformerEmbed` can be easily upgraded:
 ```python
 chunk["embedding"] = chunk["text"].transform(
     cocoindex.functions.SentenceTransformerEmbed(
-        model="sentence-transformers/all-MiniLM-L6-v2"
+        model="sentence-transformers/all-mpnet-base-v2"
     )
 )
 ```

@@ -453,7 +453,7 @@ def flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoindex.DataScope):
         # For each chunk, generate embedding and collect it
         with file["chunks"].row() as chunk:
             chunk["embedding"] = chunk["text"].transform(
-                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-MiniLM-L6-v2")
+                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2")
             )
             chunk_collector.collect(
                 filename=file["filename"],
@@ -515,7 +515,7 @@ def language_based_embedding(chunks: cocoindex.DataSlice) -> cocoindex.DataSlice
         elif lang == "javascript":
             model_name = "sentence-transformers/javascript-model"
         else:
-            model_name = "sentence-transformers/all-MiniLM-L6-v2"  # default
+            model_name = "sentence-transformers/all-mpnet-base-v2"  # default
         return text.transform(cocoindex.functions.SentenceTransformerEmbed(model=model_name))
 
     return chunks.transform(embed_chunk)

@@ -173,7 +173,7 @@ def compare_handlers():
 
 ## Configuration
 
-- **Default Model**: `sentence-transformers/all-MiniLM-L6-v2`
+- **Default Model**: `sentence-transformers/all-mpnet-base-v2`
 - **Smart Models**: GraphCodeBERT (Python/JS), UniXcoder (Rust), etc.
 - **Analysis Preference**: Tree-sitter first, Python AST fallback
 - **Extensions**: AST chunking, Python handlers, smart embedding all loaded

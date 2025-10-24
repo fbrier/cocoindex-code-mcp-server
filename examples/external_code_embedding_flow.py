@@ -109,7 +109,7 @@ def multi_model_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: 
 
             # General-purpose embedding for broader semantic search
             chunk["embedding_general"] = chunk["text"].transform(
-                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-MiniLM-L6-v2")
+                cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2")
             )
 
         # Store with both embeddings
@@ -201,7 +201,7 @@ def show_integration_example():
 # Before (using standard SentenceTransformerEmbed)
 chunk["embedding"] = chunk["text"].transform(
     cocoindex.functions.SentenceTransformerEmbed(
-        model="sentence-transformers/all-MiniLM-L6-v2"
+        model="sentence-transformers/all-mpnet-base-v2"
     )
 )
 
