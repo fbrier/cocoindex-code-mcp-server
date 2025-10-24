@@ -1,6 +1,24 @@
+# This file is part of cocoindex_code_mcp_server from
+# https://github.com/aanno/cocoindex-code-mcp-server
+#
+# Copyright (C) 2025 aanno <aanno@users.noreply.github.com>
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+#
 # made from perplexity based on lib.rs
 
-from typing import Optional, List, Dict, Tuple, Any
+from typing import Any, Dict, List, Optional, Tuple
 
 class HaskellParser:
     def __init__(self) -> None: ...
@@ -41,7 +59,13 @@ class ChunkingResult:
     def coverage_complete(self) -> bool: ...
 
 class ChunkingParams:
-    def __init__(self, chunk_size: int, min_chunk_size: int, chunk_overlap: int, max_chunk_size: int) -> None: ...
+    def __init__(
+        self,
+        chunk_size: int,
+        min_chunk_size: int,
+        chunk_overlap: int,
+        max_chunk_size: int,
+    ) -> None: ...
     def chunk_size(self) -> int: ...
     def min_chunk_size(self) -> int: ...
     def chunk_overlap(self) -> int: ...
@@ -52,5 +76,7 @@ def get_haskell_separators() -> List[str]: ...
 def get_haskell_ast_chunks(source: str) -> List[HaskellChunk]: ...
 def get_haskell_ast_chunks_enhanced(source: str) -> ChunkingResult: ...
 def get_haskell_ast_chunks_with_fallback(source: str) -> List[HaskellChunk]: ...
-def get_haskell_ast_chunks_with_params(source: str, params: ChunkingParams) -> ChunkingResult: ...
+def get_haskell_ast_chunks_with_params(
+    source: str, params: ChunkingParams
+) -> ChunkingResult: ...
 def debug_haskell_ast_nodes(source: str) -> List[str]: ...

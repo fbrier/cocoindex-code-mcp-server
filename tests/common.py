@@ -20,24 +20,20 @@ from typing import Any, Dict, List, Optional, Tuple
 # Load environment variables at module level
 from dotenv import load_dotenv
 
-
-
 load_dotenv()
 
 # CocoIndex and MCP infrastructure imports
 try:
-    import cocoindex
-    from cocoindex_code_mcp_server.backends import BackendFactory, VectorStoreBackend
-    from cocoindex_code_mcp_server.cocoindex_config import (
-        run_flow_update,
-        update_flow_config,
-    )
     from cocoindex_code_mcp_server.db.pgvector.hybrid_search import HybridSearchEngine
     from cocoindex_code_mcp_server.keyword_search_parser_lark import KeywordSearchParser
     from cocoindex_code_mcp_server.main_mcp_server import safe_embedding_function
+
+    import cocoindex
+    from cocoindex_code_mcp_server.backends import BackendFactory, VectorStoreBackend
+
     COCOINDEX_AVAILABLE = True
 except ImportError as e:
-    logging.warning(f"CocoIndex infrastructure not available: {e}")
+    logging.warning("CocoIndex infrastructure not available: %s", e)
     COCOINDEX_AVAILABLE = False
 
 
@@ -116,12 +112,12 @@ def parse_jsonc_file(file_path: Path) -> Dict[str, Any]:
 
     # Remove comments for JSON parsing
     lines = []
-    for line in fixture_content.split('\n'):
+    for line in fixture_content.split("\n"):
         stripped = line.strip()
-        if not stripped.startswith('//'):
+        if not stripped.startswith("//"):
             lines.append(line)
 
-    clean_json = '\n'.join(lines)
+    clean_json = "\n".join(lines)
     return json.loads(clean_json)
 
 
@@ -131,7 +127,7 @@ def save_search_results(
     search_data: Dict[str, Any],
     run_timestamp: str,
     test_type: str = "hybrid",
-    results_base_dir: str = "/workspaces/rust/test-results"
+    results_base_dir: str = "/workspaces/rust/test-results",
 ) -> None:
     """
     Save search results to test-results directory with unique naming.
@@ -156,21 +152,18 @@ def save_search_results(
         "test_name": test_name,
         "timestamp": datetime.datetime.now().isoformat(),
         "query": query,
-        "search_results": search_data
+        "search_results": search_data,
     }
 
     # Save to file with proper JSON serialization
     filepath = os.path.join(results_dir, filename)
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(result_data, f, indent=2, ensure_ascii=False, default=str)
 
     print(f"💾 Saved search results: {filepath}")
 
 
-def compare_expected_vs_actual(
-    expected_item: Dict[str, Any],
-    result_item: Dict[str, Any]
-) -> Tuple[bool, List[str]]:
+def compare_expected_vs_actual(expected_item: Dict[str, Any], result_item: Dict[str, Any]) -> Tuple[bool, List[str]]:
     """
     Compare expected metadata with actual result metadata.
 
@@ -257,9 +250,7 @@ def compare_expected_vs_actual(
 
 
 def validate_search_results(
-    test_cases: List[Dict[str, Any]],
-    execute_search_func,
-    run_timestamp: str
+    test_cases: List[Dict[str, Any]], execute_search_func, run_timestamp: str
 ) -> List[Dict[str, Any]]:
     """
     Validate search results against expected outcomes.
@@ -280,8 +271,8 @@ def validate_search_results(
         query = test_case["query"]
         expected_results = test_case["expected_results"]
 
-        logging.info(f"Running hybrid search test: {test_name}")
-        logging.info(f"Description: {description}")
+        logging.info("Running hybrid search test: %s", test_name)
+        logging.info("Description: %s", description)
 
         try:
             # Execute search (this should be provided by caller)
@@ -296,11 +287,13 @@ def validate_search_results(
             # Check minimum results requirement
             min_results = expected_results.get("min_results", 1)
             if total_results < min_results:
-                failed_tests.append({
-                    "test": test_name,
-                    "error": f"Expected at least {min_results} results, got {total_results}",
-                    "query": query
-                })
+                failed_tests.append(
+                    {
+                        "test": test_name,
+                        "error": f"Expected at least {min_results} results, got {total_results}",
+                        "query": query,
+                    }
+                )
                 continue
 
             # Check expected results
@@ -315,27 +308,30 @@ def validate_search_results(
                             break
 
                     if not found_match:
-                        failed_tests.append({
-                            "test": test_name,
-                            "error": f"No matching result found for expected item: {expected_item}",
-                            "query": query,
-                            "actual_results": [{
-                                "filename": r.get("filename"),
-                                "metadata_summary": {
-                                    "classes": r.get("classes", []),
-                                    "functions": r.get("functions", []),
-                                    "imports": r.get("imports", []),
-                                    "analysis_method": r.get("metadata_json", {}).get("analysis_method", "unknown")
-                                }
-                            } for r in results[:3]]  # Show first 3 results for debugging
-                        })
+                        failed_tests.append(
+                            {
+                                "test": test_name,
+                                "error": f"No matching result found for expected item: {expected_item}",
+                                "query": query,
+                                "actual_results": [
+                                    {
+                                        "filename": r.get("filename"),
+                                        "metadata_summary": {
+                                            "classes": r.get("classes", []),
+                                            "functions": r.get("functions", []),
+                                            "imports": r.get("imports", []),
+                                            "analysis_method": r.get("metadata_json", {}).get(
+                                                "analysis_method", "unknown"
+                                            ),
+                                        },
+                                    }
+                                    for r in results[:3]
+                                ],  # Show first 3 results for debugging
+                            }
+                        )
 
         except Exception as e:
-            failed_tests.append({
-                "test": test_name,
-                "error": f"Test execution failed: {str(e)}",
-                "query": query
-            })
+            failed_tests.append({"test": test_name, "error": f"Test execution failed: {str(e)}", "query": query})
 
     return failed_tests
 
@@ -361,15 +357,15 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
     # Define table mappings
     # PostgreSQL stores table names in lowercase, so we need to lowercase them for queries
     embeddings_tables = {
-        'keyword': 'keywordsearchtest_code_embeddings'.lower(),
-        'vector': 'vectorsearchtest_code_embeddings'.lower(),
-        'hybrid': 'hybridsearchtest_code_embeddings'.lower()
+        "keyword": "keywordsearchtest_code_embeddings".lower(),
+        "vector": "vectorsearchtest_code_embeddings".lower(),
+        "hybrid": "hybridsearchtest_code_embeddings".lower(),
     }
 
     tracking_tables = {
-        'keyword': 'searchtest_keyword__cocoindex_tracking'.lower(),
-        'vector': 'searchtest_vector__cocoindex_tracking'.lower(),
-        'hybrid': 'searchtest_hybrid__cocoindex_tracking'.lower()
+        "keyword": "searchtest_keyword__cocoindex_tracking".lower(),
+        "vector": "searchtest_vector__cocoindex_tracking".lower(),
+        "hybrid": "searchtest_hybrid__cocoindex_tracking".lower(),
     }
 
     # Determine which tables to clear
@@ -377,18 +373,12 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
         if test_type not in embeddings_tables:
             raise ValueError(f"Unknown test type: {test_type}. Must be one of {list(embeddings_tables.keys())}")
         # Only clear tables for this specific test type
-        tables_to_clear = {
-            'embeddings': [embeddings_tables[test_type]],
-            'tracking': [tracking_tables[test_type]]
-        }
-        logging.info(f"📋 Clearing ONLY {test_type} test tables (not affecting other test types)")
+        tables_to_clear = {"embeddings": [embeddings_tables[test_type]], "tracking": [tracking_tables[test_type]]}
+        logging.info("📋 Clearing ONLY %s test tables (not affecting other test types)", test_type)
     else:
         # Clear all test tables (only used for manual cleanup, not by tests)
-        tables_to_clear = {
-            'embeddings': list(embeddings_tables.values()),
-            'tracking': list(tracking_tables.values())
-        }
-        logging.info(f"📋 Clearing ALL test tables (keyword, vector, hybrid)")
+        tables_to_clear = {"embeddings": list(embeddings_tables.values()), "tracking": list(tracking_tables.values())}
+        logging.info("📋 Clearing ALL test tables (keyword, vector, hybrid)")
 
     # Clear tables using SQL TRUNCATE (faster and resets auto-increment)
     conn = psycopg.connect(database_url)
@@ -399,14 +389,17 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
         from psycopg import sql
 
         # Clear embeddings tables
-        for table in tables_to_clear['embeddings']:
+        for table in tables_to_clear["embeddings"]:
             # Check if table exists first
-            cur.execute("""
+            cur.execute(
+                """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = %s
                 );
-            """, (table,))
+            """,
+                (table,),
+            )
             exists_result = cur.fetchone()
             if exists_result and exists_result[0]:
                 # Get count before truncating (for logging)
@@ -415,18 +408,21 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
                 count = count_result[0] if count_result else 0
                 # TRUNCATE is faster than DELETE and resets auto-increment
                 cur.execute(sql.SQL("TRUNCATE TABLE {} RESTART IDENTITY CASCADE").format(sql.Identifier(table)))
-                logging.info(f"✅ Truncated {table} ({count} records removed)")
+                logging.info("✅ Truncated %s (%s records removed)", table, count)
             else:
-                logging.info(f"⚠️  Table {table} does not exist, skipping")
+                logging.info("⚠️  Table %s does not exist, skipping", table)
 
         # Clear tracking tables (critical for re-indexing!)
-        for table in tables_to_clear['tracking']:
-            cur.execute("""
+        for table in tables_to_clear["tracking"]:
+            cur.execute(
+                """
                 SELECT EXISTS (
                     SELECT FROM information_schema.tables
                     WHERE table_name = %s
                 );
-            """, (table,))
+            """,
+                (table,),
+            )
             exists_result = cur.fetchone()
             if exists_result and exists_result[0]:
                 # Get count before truncating (for logging)
@@ -435,16 +431,16 @@ def clear_test_tables(test_type: Optional[str] = None) -> None:
                 count = count_result[0] if count_result else 0
                 # TRUNCATE is faster than DELETE and resets auto-increment
                 cur.execute(sql.SQL("TRUNCATE TABLE {} RESTART IDENTITY CASCADE").format(sql.Identifier(table)))
-                logging.info(f"✅ Truncated {table} ({count} records removed)")
+                logging.info("✅ Truncated %s (%s records removed)", table, count)
             else:
-                logging.info(f"⚠️  Table {table} does not exist, skipping")
+                logging.info("⚠️  Table %s does not exist, skipping", table)
 
         conn.commit()
         logging.info("✅ Database cleared - ready for fresh indexing")
 
     except Exception as e:
         conn.rollback()
-        logging.error(f"❌ Failed to clear tables: {e}")
+        logging.error("❌ Failed to clear tables: %s", e)
         raise
     finally:
         cur.close()
@@ -497,7 +493,7 @@ class CocoIndexTestInfrastructure:
         chunk_factor_percent: int = 100,
         enable_polling: bool = False,
         poll_interval: int = 30,
-        test_type: Optional[str] = None
+        test_type: Optional[str] = None,
     ):
         if not COCOINDEX_AVAILABLE:
             raise RuntimeError("CocoIndex infrastructure not available. Check imports.")
@@ -529,6 +525,7 @@ class CocoIndexTestInfrastructure:
 
             # Load environment variables
             from dotenv import load_dotenv
+
             load_dotenv()
 
             # Initialize CocoIndex library with database settings
@@ -545,28 +542,35 @@ class CocoIndexTestInfrastructure:
 
             # Clear test tables to force re-indexing (critical for fresh test data)
             if self.test_type:
-                self.logger.info(f"🗑️  Clearing {self.test_type} test tables for fresh indexing...")
+                self.logger.info("🗑️  Clearing %s test tables for fresh indexing...", self.test_type)
                 clear_test_tables(self.test_type)
 
             if self.test_type:
                 # Use parameterized test flows for isolation
                 from .search_test_flows import get_search_test_flow, get_test_table_name
-                
+
                 self.flow_def = get_search_test_flow(self.test_type)
                 self.table_name = get_test_table_name(self.test_type)
-                self.logger.info(f"🔧 Using {self.test_type} test flow with table: {self.table_name}")
+                self.logger.info("🔧 Using %s test flow with table: %s", self.test_type, self.table_name)
             else:
                 # Use the main flow
-                from cocoindex_code_mcp_server.cocoindex_config import code_embedding_flow
+                from cocoindex_code_mcp_server.cocoindex_config import (
+                    code_embedding_flow,
+                )
+
                 self.flow_def = code_embedding_flow  # type: ignore[assignment]
                 # Use default table name
                 from .cocoindex_util import get_default_db_name
+
                 self.table_name = get_default_db_name()
                 self.logger.info("🔧 Using main CodeEmbedding flow")
-                
+
             # Update flow configuration (only for main flow)
             if not self.test_type:
-                from cocoindex_code_mcp_server.cocoindex_config import update_flow_config
+                from cocoindex_code_mcp_server.cocoindex_config import (
+                    update_flow_config,
+                )
+
                 update_flow_config(
                     paths=self.paths,
                     enable_polling=self.enable_polling,
@@ -574,27 +578,27 @@ class CocoIndexTestInfrastructure:
                     use_default_embedding=self.default_embedding,
                     use_default_chunking=self.default_chunking,
                     use_default_language_handler=self.default_language_handler,
-                    chunk_factor_percent=self.chunk_factor_percent
+                    chunk_factor_percent=self.chunk_factor_percent,
                 )
 
             # Log configuration
-            self.logger.info(f"📁 Paths: {self.paths}")
-            self.logger.info(f"🔴 Live updates: {'ENABLED' if self.enable_polling else 'DISABLED'}")
+            self.logger.info("📁 Paths: %s", self.paths)
+            self.logger.info("🔴 Live updates: %s", "ENABLED" if self.enable_polling else "DISABLED")
             if self.enable_polling:
-                self.logger.info(f"⏰ Polling interval: {self.poll_interval} seconds")
+                self.logger.info("⏰ Polling interval: %s seconds", self.poll_interval)
             if self.chunk_factor_percent != 100:
-                self.logger.info(f"📏 Chunk size scaling: {self.chunk_factor_percent}%")
+                self.logger.info("📏 Chunk size scaling: %s%%", self.chunk_factor_percent)
 
             # Run initial flow update to process files
             self.logger.info("🔄 Running initial flow update...")
-            self.logger.info(f"🔧 Setting up flow...")
+            self.logger.info("🔧 Setting up flow...")
             assert self.flow_def is not None, "Flow must be defined"
             self.flow_def.setup()  # type: ignore[union-attr]
             self.logger.info("✅ Flow setup completed")
 
             self.logger.info("🔄 Running flow update...")
             stats = self.flow_def.update()  # type: ignore[union-attr]
-            self.logger.info(f"📊 Flow update stats: {stats}")
+            self.logger.info("📊 Flow update stats: %s", stats)
             self.logger.info("✅ Flow update completed")
             self.logger.info("📚 CocoIndex indexing completed and ready for searches")
 
@@ -609,7 +613,7 @@ class CocoIndexTestInfrastructure:
             self.logger.info("✅ CocoIndex test infrastructure initialized successfully")
 
         except Exception as e:
-            self.logger.error(f"❌ Failed to set up CocoIndex infrastructure: {e}")
+            self.logger.error("❌ Failed to set up CocoIndex infrastructure: %s", e)
             raise
 
     async def _initialize_backend(self) -> None:
@@ -626,7 +630,7 @@ class CocoIndexTestInfrastructure:
         if not table_name:
             raise ValueError("Table name not set. Ensure setup() was called first.")
 
-        self.logger.info(f"🔧 Initializing {backend_type} backend with table: {table_name}")
+        self.logger.info("🔧 Initializing %s backend with table: %s", backend_type, table_name)
 
         # Create backend based on type
         if backend_type == "postgres":
@@ -638,20 +642,14 @@ class CocoIndexTestInfrastructure:
             with pool.connection() as conn:
                 register_vector(conn)
 
-            self.backend = BackendFactory.create_backend(
-                backend_type,
-                pool=pool,
-                table_name=table_name
-            )
+            self.backend = BackendFactory.create_backend(backend_type, pool=pool, table_name=table_name)
         else:
             # For other backends that might expect connection_string
             self.backend = BackendFactory.create_backend(
-                backend_type,
-                connection_string=database_url,
-                table_name=table_name
+                backend_type, connection_string=database_url, table_name=table_name
             )
 
-        self.logger.info(f"✅ Backend initialized: {backend_type}")
+        self.logger.info("✅ Backend initialized: %s", backend_type)
 
     async def _initialize_search_engine(self) -> None:
         """Initialize the hybrid search engine."""
@@ -665,10 +663,7 @@ class CocoIndexTestInfrastructure:
 
         # Initialize hybrid search engine
         self.hybrid_search_engine = HybridSearchEngine(
-            table_name=table_name,
-            parser=parser,
-            backend=self.backend,
-            embedding_func=safe_embedding_function
+            table_name=table_name, parser=parser, backend=self.backend, embedding_func=safe_embedding_function
         )
 
         self.logger.info("✅ Hybrid search engine initialized")
@@ -710,7 +705,7 @@ class CocoIndexTestInfrastructure:
                 vector_weight=vector_weight,
                 keyword_weight=keyword_weight,
                 language=language,
-                embedding_model=embedding_model
+                embedding_model=embedding_model,
             )
 
             return {
@@ -719,14 +714,14 @@ class CocoIndexTestInfrastructure:
                     "keyword_query": keyword_query,
                     "top_k": top_k,
                     "vector_weight": vector_weight,
-                    "keyword_weight": keyword_weight
+                    "keyword_weight": keyword_weight,
                 },
                 "results": results,
-                "total_results": len(results)
+                "total_results": len(results),
             }
 
         except Exception as e:
-            self.logger.error(f"Hybrid search failed: {e}")
+            self.logger.error("Hybrid search failed: %s", e)
             raise
 
     async def perform_vector_search(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -747,29 +742,28 @@ class CocoIndexTestInfrastructure:
 
         try:
             # Convert text query to vector using embedding function
-            from cocoindex_code_mcp_server.main_mcp_server import safe_embedding_function
+            from cocoindex_code_mcp_server.main_mcp_server import (
+                safe_embedding_function,
+            )
+
             query_vector = safe_embedding_function(vector_query)
 
             # Call backend method directly
             search_results = self.backend.vector_search(
-                query_vector=query_vector,  # type: ignore[arg-type]
-                top_k=top_k
+                query_vector=query_vector, top_k=top_k  # type: ignore[arg-type]
             )
 
             # Convert SearchResult objects to dictionaries (like HybridSearchEngine does)
             results = [self._search_result_to_dict(result) for result in search_results]
 
             return {
-                "query": {
-                    "vector_query": vector_query,
-                    "top_k": top_k
-                },
+                "query": {"vector_query": vector_query, "top_k": top_k},
                 "results": results,
-                "total_results": len(results)
+                "total_results": len(results),
             }
 
         except Exception as e:
-            self.logger.error(f"Vector search failed: {e}")
+            self.logger.error("Vector search failed: %s", e)
             raise
 
     async def perform_keyword_search(self, arguments: Dict[str, Any]) -> Dict[str, Any]:
@@ -790,35 +784,32 @@ class CocoIndexTestInfrastructure:
 
         try:
             # Parse keyword query using the keyword search parser
-            from cocoindex_code_mcp_server.keyword_search_parser_lark import KeywordSearchParser
+            from cocoindex_code_mcp_server.keyword_search_parser_lark import (
+                KeywordSearchParser,
+            )
+
             from cocoindex_code_mcp_server.backends import QueryFilters
 
             parser = KeywordSearchParser()
             search_group = parser.parse(keyword_query)
-            
+
             # Convert SearchGroup to QueryFilters format
             filters = QueryFilters(conditions=search_group.conditions, operator=search_group.operator.value)
 
             # Call backend method directly
-            search_results = self.backend.keyword_search(
-                filters=filters,
-                top_k=top_k
-            )
+            search_results = self.backend.keyword_search(filters=filters, top_k=top_k)
 
             # Convert SearchResult objects to dictionaries (like HybridSearchEngine does)
             results = [self._search_result_to_dict(result) for result in search_results]
 
             return {
-                "query": {
-                    "keyword_query": keyword_query,
-                    "top_k": top_k
-                },
+                "query": {"keyword_query": keyword_query, "top_k": top_k},
                 "results": results,
-                "total_results": len(results)
+                "total_results": len(results),
             }
 
         except Exception as e:
-            self.logger.error(f"Keyword search failed: {e}")
+            self.logger.error("Keyword search failed: %s", e)
             raise
 
     def _search_result_to_dict(self, result) -> Dict[str, Any]:
@@ -831,7 +822,7 @@ class CocoIndexTestInfrastructure:
             "start": result.start,
             "end": result.end,
             "source": result.source,
-            "score_type": result.score_type
+            "score_type": result.score_type,
         }
 
         # Add metadata fields if available
@@ -861,7 +852,7 @@ class CocoIndexTestInfrastructure:
             cocoindex.stop()
             self.logger.info("✅ CocoIndex library stopped")
         except Exception as e:
-            self.logger.warning(f"Error stopping CocoIndex: {e}")
+            self.logger.warning("Error stopping CocoIndex: %s", e)
 
         self.logger.info("✅ CocoIndex test infrastructure cleaned up")
 
@@ -876,9 +867,7 @@ class CocoIndexTestInfrastructure:
 
 
 async def run_cocoindex_hybrid_search_tests(
-    test_cases: List[Dict[str, Any]],
-    infrastructure: CocoIndexTestInfrastructure,
-    run_timestamp: str
+    test_cases: List[Dict[str, Any]], infrastructure: CocoIndexTestInfrastructure, run_timestamp: str
 ) -> List[Dict[str, Any]]:
     """
     Run hybrid search tests using CocoIndex infrastructure directly.
@@ -901,10 +890,10 @@ async def run_cocoindex_hybrid_search_tests(
         fail_expected = test_case.get("fail_expected", False)
         fail_reason = test_case.get("fail_reason", "")
 
-        logging.info(f"Running hybrid search test: {test_name}")
-        logging.info(f"Description: {description}")
+        logging.info("Running hybrid search test: %s", test_name)
+        logging.info("Description: %s", description)
         if fail_expected:
-            logging.info(f"⚠️  Expected to fail: {fail_reason}")
+            logging.info("⚠️  Expected to fail: %s", fail_reason)
 
         try:
             # Execute search using infrastructure
@@ -921,14 +910,10 @@ async def run_cocoindex_hybrid_search_tests(
             if total_results < min_results:
                 error_msg = f"Expected at least {min_results} results, got {total_results}"
                 if fail_expected:
-                    logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
-                    logging.info(f"   Failure: {error_msg}")
+                    logging.info("✅ Test failed as expected: %s - %s", test_name, fail_reason)
+                    logging.info("   Failure: %s", error_msg)
                 else:
-                    failed_tests.append({
-                        "test": test_name,
-                        "error": error_msg,
-                        "query": query
-                    })
+                    failed_tests.append({"test": test_name, "error": error_msg, "query": query})
                 continue
 
             # Check expected results using common helper
@@ -946,164 +931,181 @@ async def run_cocoindex_hybrid_search_tests(
                         # Enhanced error reporting with database comparison for hybrid search
                         try:
                             from .db_comparison import compare_test_with_database
-                            db_comparison = await compare_test_with_database(
-                                test_name, query, expected_item, results
-                            )
-                            db_report = f"\n🔍 Database Comparison Analysis (HYBRID SEARCH):\n"
+
+                            db_comparison = await compare_test_with_database(test_name, query, expected_item, results)
+                            db_report = "\n🔍 Database Comparison Analysis (HYBRID SEARCH):\n"
                             for discrepancy in db_comparison.discrepancies:
                                 db_report += f"  ❌ {discrepancy}\n"
-                            
+
                             if db_comparison.matching_db_records:
-                                db_report += f"\n📋 Database has {len(db_comparison.matching_db_records)} matching records\n"
+                                db_report += (
+                                    f"\n📋 Database has {len(db_comparison.matching_db_records)} matching records\n"
+                                )
                                 # Show sample DB record metadata
                                 if db_comparison.matching_db_records:
                                     sample_record = db_comparison.matching_db_records[0]
-                                    db_report += f"  Sample DB record: complexity_score={sample_record.get('complexity_score', 'N/A')}, "
+                                    db_report += f"  Sample DB record: complexity_score={
+                                        sample_record.get(
+                                            'complexity_score', 'N/A')}, "
                                     db_report += f"has_classes={sample_record.get('has_classes', 'N/A')}, "
                                     db_report += f"language={sample_record.get('language', 'N/A')}, "
                                     db_report += f"functions='{sample_record.get('functions', 'N/A')[:50]}...'\n"
-                            
-                            error_with_db_analysis = f"No matching result found for expected item: {expected_item}{db_report}"
+
+                            error_with_db_analysis = (
+                                f"No matching result found for expected item: {expected_item}{db_report}"
+                            )
                         except Exception as db_error:
-                            logging.warning(f"Database comparison failed for hybrid search: {db_error}")
+                            logging.warning("Database comparison failed for hybrid search: %s", db_error)
                             error_with_db_analysis = f"No matching result found for expected item: {expected_item}"
 
                         if fail_expected:
-                            logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
-                            logging.info(f"   Failure: {error_with_db_analysis}")
+                            logging.info("✅ Test failed as expected: %s - %s", test_name, fail_reason)
+                            logging.info("   Failure: %s", error_with_db_analysis)
                         else:
-                            failed_tests.append({
-                                "test": test_name,
-                                "error": error_with_db_analysis,
-                                "query": query,
-                                "actual_results": [{
-                                    "filename": r.get("filename"),
-                                    "metadata_summary": {
-                                        "classes": r.get("classes", []),
-                                        "functions": r.get("functions", []),
-                                        "imports": r.get("imports", []),
-                                        "analysis_method": r.get("metadata_json", {}).get("analysis_method", "unknown")
-                                    }
-                                } for r in results[:3]]  # Show first 3 results for debugging
-                            })
+                            failed_tests.append(
+                                {
+                                    "test": test_name,
+                                    "error": error_with_db_analysis,
+                                    "query": query,
+                                    "actual_results": [
+                                        {
+                                            "filename": r.get("filename"),
+                                            "metadata_summary": {
+                                                "classes": r.get("classes", []),
+                                                "functions": r.get("functions", []),
+                                                "imports": r.get("imports", []),
+                                                "analysis_method": r.get("metadata_json", {}).get(
+                                                    "analysis_method", "unknown"
+                                                ),
+                                            },
+                                        }
+                                        for r in results[:3]
+                                    ],  # Show first 3 results for debugging
+                                }
+                            )
 
         except Exception as e:
             error_msg = f"Test execution failed: {str(e)}"
             if fail_expected:
-                logging.info(f"✅ Test failed as expected: {test_name} - {fail_reason}")
-                logging.info(f"   Failure: {error_msg}")
+                logging.info("✅ Test failed as expected: %s - %s", test_name, fail_reason)
+                logging.info("   Failure: %s", error_msg)
             else:
-                failed_tests.append({
-                    "test": test_name,
-                    "error": error_msg,
-                    "query": query
-                })
+                failed_tests.append({"test": test_name, "error": error_msg, "query": query})
 
     return failed_tests
 
+
 async def run_cocoindex_vector_search_tests(
-      test_cases: List[Dict[str, Any]],
-      infrastructure: CocoIndexTestInfrastructure,
-      run_timestamp: str
-  ) -> List[Dict[str, Any]]:
-      """
-      Run vector-only search tests using CocoIndex infrastructure directly.
+    test_cases: List[Dict[str, Any]], infrastructure: CocoIndexTestInfrastructure, run_timestamp: str
+) -> List[Dict[str, Any]]:
+    """
+    Run vector-only search tests using CocoIndex infrastructure directly.
 
-      Args:
-          test_cases: List of test case definitions
-          infrastructure: Initialized CocoIndex infrastructure
-          run_timestamp: Timestamp for result saving
+    Args:
+        test_cases: List of test case definitions
+        infrastructure: Initialized CocoIndex infrastructure
+        run_timestamp: Timestamp for result saving
 
-      Returns:
-          List of failed test cases with error details
-      """
-      failed_tests = []
+    Returns:
+        List of failed test cases with error details
+    """
+    failed_tests = []
 
-      for test_case in test_cases:
-          test_name = test_case["name"]
-          description = test_case["description"]
-          query = test_case["query"]
-          expected_results = test_case["expected_results"]
+    for test_case in test_cases:
+        test_name = test_case["name"]
+        description = test_case["description"]
+        query = test_case["query"]
+        expected_results = test_case["expected_results"]
 
-          logging.info(f"Running vector search test: {test_name}")
-          logging.info(f"Description: {description}")
+        logging.info("Running vector search test: %s", test_name)
+        logging.info("Description: %s", description)
 
-          try:
-              # Execute vector-only search using infrastructure backend
-              search_data = await infrastructure.perform_vector_search(query)
+        try:
+            # Execute vector-only search using infrastructure backend
+            search_data = await infrastructure.perform_vector_search(query)
 
-              results = search_data.get("results", [])
-              total_results = len(results)
+            results = search_data.get("results", [])
+            total_results = len(results)
 
-              # Save search results to test-results directory
-              save_search_results(test_name, query, search_data, run_timestamp, test_type="vector")
+            # Save search results to test-results directory
+            save_search_results(test_name, query, search_data, run_timestamp, test_type="vector")
 
-              # Check minimum results requirement
-              min_results = expected_results.get("min_results", 1)
-              if total_results < min_results:
-                  failed_tests.append({
-                      "test": test_name,
-                      "error": f"Expected at least {min_results} results, got {total_results}",
-                      "query": query
-                  })
-                  continue
+            # Check minimum results requirement
+            min_results = expected_results.get("min_results", 1)
+            if total_results < min_results:
+                failed_tests.append(
+                    {
+                        "test": test_name,
+                        "error": f"Expected at least {min_results} results, got {total_results}",
+                        "query": query,
+                    }
+                )
+                continue
 
-              # Check expected results using common helper
-              if "should_contain" in expected_results:
-                  for expected_item in expected_results["should_contain"]:
-                      found_match = False
+            # Check expected results using common helper
+            if "should_contain" in expected_results:
+                for expected_item in expected_results["should_contain"]:
+                    found_match = False
 
-                      for result_item in results:
-                          match_found, _ = compare_expected_vs_actual(expected_item, result_item)
-                          if match_found:
-                              found_match = True
-                              break
+                    for result_item in results:
+                        match_found, _ = compare_expected_vs_actual(expected_item, result_item)
+                        if match_found:
+                            found_match = True
+                            break
 
-                      if not found_match:
-                          # Enhanced error reporting with database comparison for vector search
-                          try:
-                              from .db_comparison import compare_test_with_database
-                              db_comparison = await compare_test_with_database(
-                                  test_name, query, expected_item, results
-                              )
-                              db_report = f"\n🔍 Database Comparison Analysis (VECTOR SEARCH):\n"
-                              for discrepancy in db_comparison.discrepancies:
-                                  db_report += f"  ❌ {discrepancy}\n"
+                    if not found_match:
+                        # Enhanced error reporting with database comparison for vector search
+                        try:
+                            from .db_comparison import compare_test_with_database
 
-                              if db_comparison.matching_db_records:
-                                  db_report += f"\n📋 Database has {len(db_comparison.matching_db_records)} matching records\n"
-                                  # Show sample DB record metadata
-                                  if db_comparison.matching_db_records:
-                                      sample_record = db_comparison.matching_db_records[0]
-                                      db_report += f"  Sample DB record: complexity_score={sample_record.get('complexity_score', 'N/A')}, "
-                                      db_report += f"has_classes={sample_record.get('has_classes', 'N/A')}, "
-                                      db_report += f"language={sample_record.get('language', 'N/A')}, "
-                                      db_report += f"functions='{sample_record.get('functions', 'N/A')[:50]}...'\n"
+                            db_comparison = await compare_test_with_database(test_name, query, expected_item, results)
+                            db_report = "\n🔍 Database Comparison Analysis (VECTOR SEARCH):\n"
+                            for discrepancy in db_comparison.discrepancies:
+                                db_report += f"  ❌ {discrepancy}\n"
 
-                              error_with_db_analysis = f"No matching result found  for expected item: {expected_item}{db_report}"
-                          except Exception as db_error:
-                              logging.warning(f"Database comparison failed for  vector search: {db_error}")
-                              error_with_db_analysis = f"No matching result found  for expected item: {expected_item}"
+                            if db_comparison.matching_db_records:
+                                db_report += (
+                                    f"\n📋 Database has {len(db_comparison.matching_db_records)} matching records\n"
+                                )
+                                # Show sample DB record metadata
+                                if db_comparison.matching_db_records:
+                                    sample_record = db_comparison.matching_db_records[0]
+                                    db_report += f"  Sample DB record: complexity_score={
+                                        sample_record.get(
+                                            'complexity_score', 'N/A')}, "
+                                    db_report += f"has_classes={sample_record.get('has_classes', 'N/A')}, "
+                                    db_report += f"language={sample_record.get('language', 'N/A')}, "
+                                    db_report += f"functions='{sample_record.get('functions', 'N/A')[:50]}...'\n"
 
-                          failed_tests.append({
-                              "test": test_name,
-                              "error": error_with_db_analysis,
-                              "query": query,
-                              "actual_results": [{
-                                  "filename": r.get("filename"),
-                                  "metadata_summary": {
-                                      "classes": r.get("classes", []),
-                                      "functions": r.get("functions", []),
-                                      "imports": r.get("imports", []),
-                                      "analysis_method": r.get("metadata_json",{}).get("analysis_method", "unknown")
-                                  }
-                              } for r in results[:3]]  # Show first 3 results for debugging
-                          })
-          except Exception as e:
-              failed_tests.append({
-                  "test": test_name,
-                  "error": f"Test execution failed: {str(e)}",
-                  "query": query
-              })
+                            error_with_db_analysis = (
+                                f"No matching result found  for expected item: {expected_item}{db_report}"
+                            )
+                        except Exception as db_error:
+                            logging.warning("Database comparison failed for  vector search: %s", db_error)
+                            error_with_db_analysis = f"No matching result found  for expected item: {expected_item}"
 
-      return failed_tests
+                        failed_tests.append(
+                            {
+                                "test": test_name,
+                                "error": error_with_db_analysis,
+                                "query": query,
+                                "actual_results": [
+                                    {
+                                        "filename": r.get("filename"),
+                                        "metadata_summary": {
+                                            "classes": r.get("classes", []),
+                                            "functions": r.get("functions", []),
+                                            "imports": r.get("imports", []),
+                                            "analysis_method": r.get("metadata_json", {}).get(
+                                                "analysis_method", "unknown"
+                                            ),
+                                        },
+                                    }
+                                    for r in results[:3]
+                                ],  # Show first 3 results for debugging
+                            }
+                        )
+        except Exception as e:
+            failed_tests.append({"test": test_name, "error": f"Test execution failed: {str(e)}", "query": query})
+
+    return failed_tests

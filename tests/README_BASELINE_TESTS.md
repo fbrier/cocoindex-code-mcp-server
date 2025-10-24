@@ -11,6 +11,7 @@ Baseline tests compare our tree-sitter-based code analysis against simple text-b
 ### Multi-Language Baseline (`tests/all_languages_baseline.py`)
 
 Tests all supported languages (Python, Haskell, C, C++, Rust, Kotlin, Java, TypeScript) by comparing:
+
 - **Tree-sitter analysis** - Our main implementation using tree-sitter parsers
 - **Text baseline** - Simple regex-based pattern matching for reference
 
@@ -19,6 +20,7 @@ Tests all supported languages (Python, Haskell, C, C++, Rust, Kotlin, Java, Type
 Example: `tests/lang/haskell/test_haskell_comprehensive_baseline.py`
 
 These tests compare three analysis methods for specific languages:
+
 1. **Specialized Handler** - Custom language-specific implementation (e.g., Haskell handler)
 2. **Generic Visitor** - Generic AST visitor (should delegate to specialized handler)
 3. **Text Baseline** - Simple pattern matching baseline
@@ -33,7 +35,7 @@ The baseline test calculates standard information retrieval metrics:
 # Recall: What percentage of expected items were found
 function_recall = len(detected ∩ expected) / len(expected)
 
-# Precision: What percentage of detected items were correct  
+# Precision: What percentage of detected items were correct
 function_precision = len(detected ∩ expected) / len(detected)
 
 # F1 Score: Harmonic mean of precision and recall
@@ -43,13 +45,15 @@ f1_score = 2 * (precision * recall) / (precision + recall)
 ### Example Calculation
 
 For a hypothetical test:
+
 - **Expected**: 7 items
 - **Detected**: 12 items (7 correct + 5 false positives)
 
 **Metrics:**
+
 - **Recall**: 7/7 = 100% (found all expected items)
 - **Precision**: 7/12 = 58.33% (7 correct out of 12 detected)
-- **F1 Score**: 2 * (1.0 * 0.583) / (1.0 + 0.583) = 73.68%
+- **F1 Score**: 2 *(1.0* 0.583) / (1.0 + 0.583) = 73.68%
 
 ## Running Baseline Tests
 
@@ -153,15 +157,15 @@ from pathlib import Path
 def run_baseline_test():
     """Run the baseline test and return metrics."""
     result = subprocess.run([
-        sys.executable, '-m', 'pytest', 
+        sys.executable, '-m', 'pytest',
         'tests/lang/haskell/test_haskell_comprehensive_baseline.py',
         '-q'  # Quiet mode
     ], cwd=Path.cwd(), capture_output=True, text=True)
-    
+
     if result.returncode != 0:
         print(f"Test failed: {result.stderr}")
         return None
-    
+
     # Read results file
     results_file = Path('tests/lang/haskell/haskell_baseline_results.json')
     if results_file.exists():
@@ -242,7 +246,7 @@ You can use these metrics as quality gates in CI:
 - name: Run Baseline Tests
   run: |
     python -m pytest tests/lang/haskell/test_haskell_comprehensive_baseline.py
-    
+
 - name: Check Quality Metrics
   run: |
     RECALL=$(cat tests/lang/haskell/haskell_baseline_results.json | jq -r '.metrics.specialized_visitor.function_recall')
@@ -293,7 +297,7 @@ All tests are working correctly with the following F1 scores:
 
 ### Implementation Notes
 
-**Haskell** uses a custom Rust implementation (`rust/src/lib.rs`) via Maturin/PyO3 for performance, while other languages use Python tree-sitter bindings. All languages delegate to specialized handlers in `src/cocoindex_code_mcp_server/language_handlers/`.
+**Haskell** uses a custom Rust implementation (`rust/src/lib.rs`) via Maturin/PyO3 for performance, while other languages use Python tree-sitter bindings. All languages delegate to specialized handlers in `python/cocoindex_code_mcp_server/language_handlers/`.
 
 ## Best Practices
 

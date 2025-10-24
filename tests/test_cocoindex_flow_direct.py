@@ -7,13 +7,13 @@ import os
 import tempfile
 
 import pytest
-from dotenv import load_dotenv
-
-import cocoindex
 from cocoindex_code_mcp_server.cocoindex_config import (
     code_embedding_flow,
     update_flow_config,
 )
+from dotenv import load_dotenv
+
+import cocoindex
 
 # Load environment variables
 load_dotenv()
@@ -35,7 +35,6 @@ class TestCocoIndexFlowDirect:
         cocoindex.init()
 
         # Import the flow to register it
-        from cocoindex_code_mcp_server.cocoindex_config import code_embedding_flow
 
         yield
 

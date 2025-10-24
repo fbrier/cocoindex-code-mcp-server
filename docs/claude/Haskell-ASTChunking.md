@@ -53,6 +53,7 @@ The latest enhancement introduces a **pure Rust implementation** of ASTChunk-sty
 #### New Architecture Components
 
 **1. Context Propagation System**
+
 ```rust
 #[derive(Clone, Debug)]
 pub struct ChunkingContext {
@@ -73,6 +74,7 @@ pub struct ContextNode {
 ```
 
 **2. Parameterized Chunking API**
+
 ```rust
 #[pyclass]
 pub struct ChunkingParams {
@@ -84,6 +86,7 @@ pub struct ChunkingParams {
 ```
 
 **3. Enhanced Results with Error Handling**
+
 ```rust
 #[pyclass]
 pub struct ChunkingResult {
@@ -97,17 +100,20 @@ pub struct ChunkingResult {
 #### Key Features
 
 **Context-Aware Chunking:**
+
 - **Ancestor tracking**: Each chunk maintains full ancestor path (e.g., `"ComplexModule::TreeProcessor::processNode"`)
 - **Semantic nesting**: Preserves module, class, and function context hierarchies
 - **Rich metadata**: Chunks include ancestor paths, current scope, and semantic categories
 
 **Recursive Splitting Algorithm:**
+
 - **Size-based splitting**: Large AST nodes automatically split when exceeding `max_chunk_size`
 - **Semantic preservation**: Splits respect Haskell language constructs and boundaries
 - **Merge optimization**: Adjacent small chunks merged when beneficial
 - **Error recovery**: Graceful handling of malformed code with fallback strategies
 
 **Performance Optimizations:**
+
 - **Pure Rust implementation**: 10-50x faster than Python-based chunking
 - **Streaming processing**: Memory-efficient handling of large files
 - **Incremental context updates**: Efficient ancestor path maintenance
@@ -115,8 +121,9 @@ pub struct ChunkingResult {
 #### Usage Examples
 
 **Python Integration:**
+
 ```python
-import haskell_tree_sitter as hts
+from . import _haskell_tree_sitter as hts
 
 # Create chunking parameters
 params = hts.ChunkingParams(
@@ -142,6 +149,7 @@ for chunk in result.chunks():
 ```
 
 **Enhanced Haskell Chunker Integration:**
+
 ```python
 from cocoindex_code_mcp_server.lang.haskell.haskell_ast_chunker import (
     EnhancedHaskellChunker, HaskellChunkConfig
@@ -170,14 +178,17 @@ The enhanced system provides multiple chunking strategies with automatic fallbac
 #### Context Examples
 
 **Simple Module Context:**
+
 ```haskell
 module SimpleExample where
 factorial :: Integer -> Integer
 factorial n = n * factorial (n - 1)
 ```
+
 Result: Chunks include `ancestor_path: "SimpleExample"` for module context.
 
 **Nested Function Context:**
+
 ```haskell
 module ComplexExample where
 processTree :: Tree a -> IO ()
@@ -187,14 +198,17 @@ processTree tree = do
   where
     processNode node = putStrLn (show node)
 ```
+
 Result: Helper function chunk includes `ancestor_path: "ComplexExample::processTree::helper"`.
 
 **Class Instance Context:**
+
 ```haskell
 instance Functor Tree where
     fmap f (Leaf x) = Leaf (f x)
     fmap f (Branch l r) = Branch (fmap f l) (fmap f r)
 ```
+
 Result: Function chunks include `ancestor_path: "Functor::fmap"`.
 
 ## Key Improvements
@@ -202,9 +216,10 @@ Result: Function chunks include `ancestor_path: "Functor::fmap"`.
 ### 1. Configuration System
 
 **`HaskellChunkConfig` Class**
+
 ```python
 class HaskellChunkConfig:
-    def __init__(self, 
+    def __init__(self,
                  max_chunk_size: int = 1800,
                  chunk_overlap: int = 0,
                  chunk_expansion: bool = False,
@@ -214,6 +229,7 @@ class HaskellChunkConfig:
 ```
 
 **Benefits:**
+
 - Centralized configuration management
 - Template-based metadata generation
 - Haskell-specific preservation options
@@ -222,11 +238,13 @@ class HaskellChunkConfig:
 ### 2. Intelligent Size Optimization
 
 **Adaptive Chunk Splitting**
+
 - Large chunks automatically split at optimal boundaries
 - Smart split point detection using separator priority scoring
 - Size limits enforced while respecting code structure
 
 **Split Point Algorithm:**
+
 ```python
 def _find_best_split_point(self, lines, target_idx, separators):
     # Score-based approach:
@@ -238,25 +256,27 @@ def _find_best_split_point(self, lines, target_idx, separators):
 ### 3. Enhanced Separator System
 
 **Priority-Ordered Separators:**
+
 ```python
 enhanced_separators = [
     # High priority: Module and import boundaries
     r"\nmodule\s+[A-Z][a-zA-Z0-9_.']*",
     r"\nimport\s+(qualified\s+)?[A-Z][a-zA-Z0-9_.']*",
-    
+
     # Medium priority: Type and data definitions
     r"\ndata\s+[A-Z][a-zA-Z0-9_']*",
     r"\nclass\s+[A-Z][a-zA-Z0-9_']*",
-    
+
     # Lower priority: Function definitions
     r"\n[a-zA-Z][a-zA-Z0-9_']*\s*::",
-    
+
     # Comment-based separators
     r"\n--\s*[=-]{3,}",
 ]
 ```
 
 **Improvements:**
+
 - Haskell-specific language constructs recognized
 - Hierarchical priority system prevents bad splits
 - Comment blocks used as natural boundaries
@@ -264,6 +284,7 @@ enhanced_separators = [
 ### 4. Rich Metadata Templates
 
 **Default Template:**
+
 ```python
 metadata = {
     "chunk_id": chunk.get("chunk_id", 0),
@@ -282,11 +303,13 @@ metadata = {
 ```
 
 **RepoEval Template:**
+
 - Extracted function names from type signatures
 - Extracted type definitions (data, newtype, class)
 - Dependency analysis from imports
 
 **SWebench Template:**
+
 - Complexity scoring based on Haskell constructs
 - Monadic operation counting
 - Control flow analysis
@@ -294,6 +317,7 @@ metadata = {
 ### 5. Context Enhancement Features
 
 **Chunk Overlap:**
+
 ```python
 def _add_chunk_overlap(self, chunks, content):
     # Add configurable line overlap between chunks
@@ -302,6 +326,7 @@ def _add_chunk_overlap(self, chunks, content):
 ```
 
 **Chunk Expansion:**
+
 ```python
 def _expand_chunks_with_context(self, chunks, file_path):
     # Add contextual headers to chunks
@@ -318,6 +343,7 @@ def _expand_chunks_with_context(self, chunks, file_path):
 3. **Simple text chunking**: Basic line-based splitting as last resort
 
 **Enhanced Regex Fallback:**
+
 ```python
 def create_enhanced_regex_fallback_chunks(content, file_path, config):
     # Uses priority-scored separators
@@ -329,16 +355,17 @@ def create_enhanced_regex_fallback_chunks(content, file_path, config):
 ### 7. Advanced Haskell Analysis
 
 **Content Analysis Functions:**
+
 ```python
 def _extract_function_names(self, content):
     # Regex: r'^([a-zA-Z][a-zA-Z0-9_\']*)\s*::'
-    
+
 def _extract_type_names(self, content):
     # Patterns for data, newtype, type, class definitions
-    
+
 def _calculate_complexity(self, content):
     # Counts: case, if, where, let, do, monadic ops
-    
+
 def _extract_dependencies(self, content):
     # Parses import statements for module dependencies
 ```
@@ -346,6 +373,7 @@ def _extract_dependencies(self, content):
 ## Usage Examples
 
 ### Basic Usage
+
 ```python
 # Simple chunking with defaults
 chunker = EnhancedHaskellChunker()
@@ -353,6 +381,7 @@ chunks = chunker.chunk_code(haskell_code, "Main.hs")
 ```
 
 ### Advanced Configuration
+
 ```python
 # Custom configuration for specific use case
 config = HaskellChunkConfig(
@@ -366,6 +395,7 @@ chunks = chunker.chunk_code(haskell_code, "Main.hs")
 ```
 
 ### CocoIndex Operation
+
 ```python
 # Use as CocoIndex operation
 @cocoindex.operation
@@ -383,11 +413,13 @@ def process_haskell_files():
 ## Performance Improvements
 
 ### Caching System
+
 - Builder instance caching for repeated operations
 - Expensive regex compilation cached
 - Separator matching optimized
 
 ### Memory Efficiency
+
 - Streaming-based processing for large files
 - Lazy evaluation of metadata
 - Minimal memory footprint during chunking
@@ -414,6 +446,7 @@ def process_haskell_files():
 ## Haskell-Specific Enhancements
 
 ### Language Construct Recognition
+
 - **Module boundaries**: Preserved as high-priority separators
 - **Import blocks**: Kept together when `preserve_imports=True`
 - **Type signatures**: Recognized and analyzed for function extraction
@@ -422,14 +455,18 @@ def process_haskell_files():
 - **Instance declarations**: Recognized for complexity analysis
 
 ### Complexity Scoring
+
 The enhanced system provides Haskell-specific complexity metrics:
+
 - Monadic operations (`>>`, `>>=`)
 - Control structures (`case`, `if`, `where`, `let`, `do`)
 - Function application operators (`$`)
 - Type signature density (`::`counts)
 
 ### Metadata Analysis
+
 Rich content analysis provides insights into chunk characteristics:
+
 - `has_imports`: Contains import statements
 - `has_exports`: Contains module export lists
 - `has_type_signatures`: Contains function type declarations
@@ -440,16 +477,19 @@ Rich content analysis provides insights into chunk characteristics:
 ## Integration with CocoIndex
 
 ### Backward Compatibility
+
 - Original `extract_haskell_ast_chunks` function maintained
 - Legacy return format supported via conversion layer
 - Existing CocoIndex operations continue to work
 
 ### New Operations
+
 - `EnhancedHaskellChunk`: Full-featured operation with all new capabilities
 - `get_haskell_language_spec`: Enhanced language specification
 - Template-based metadata for different use cases
 
 ### Configuration Integration
+
 ```python
 # Enhanced language spec with configuration
 spec = get_haskell_language_spec(
@@ -464,13 +504,16 @@ spec = get_haskell_language_spec(
 ## Testing and Validation
 
 ### Test Coverage
+
 The enhanced system includes comprehensive test coverage:
+
 - Unit tests for each chunking strategy
 - Integration tests with various Haskell code patterns
 - Performance benchmarks against original implementation
 - Metadata validation tests
 
 ### Example Test Cases
+
 ```python
 def test_enhanced_haskell_chunking():
     # Tests multiple configurations
@@ -485,7 +528,7 @@ def test_enhanced_haskell_chunking():
 
 #### 1. Direct Tree-sitter Integration
 
-**Current**: Indirect usage via `haskell_tree_sitter` wrapper
+**Current**: Indirect usage via `_haskell_tree_sitter` wrapper
 **Future**: Direct tree-sitter Python bindings integration
 
 ```python
@@ -494,7 +537,7 @@ def _direct_ast_chunking(self, content: str):
     parser = Parser()
     parser.set_language(Language('haskell.so'))
     tree = parser.parse(bytes(content, "utf8"))
-    
+
     chunks = []
     for node in tree.root_node.children:
         if node.type in ['function_declaration', 'data_declaration']:
@@ -510,11 +553,12 @@ def _direct_ast_chunking(self, content: str):
 **Benefits**:
 
 - More granular AST control
-- Custom node traversal strategies  
+- Custom node traversal strategies
 - Better error handling for malformed code
 - Richer AST metadata extraction
 
 #### 2. Semantic Chunking
+
 **Current**: Syntax-based boundaries (imports, functions, types)
 **Future**: Meaning-based grouping using code analysis
 
@@ -523,10 +567,10 @@ def _direct_ast_chunking(self, content: str):
 def _semantic_dependency_chunking(self, content: str):
     functions = self._parse_functions(content)
     call_graph = self._build_call_graph(functions)
-    
+
     # Group functions by dependency clusters
     clusters = self._find_dependency_clusters(call_graph)
-    
+
     semantic_chunks = []
     for cluster in clusters:
         # Combine related functions into logical chunks
@@ -571,7 +615,7 @@ Cross-module dependency consideration for better chunking decisions
 # Consider imports when chunking
 def _module_aware_chunking(self, content: str, module_context: dict):
     imports = self._extract_imports(content)
-    
+
     for chunk in chunks:
         # Analyze which imports are actually used in this chunk
         used_imports = self._find_used_imports(chunk, imports)
@@ -588,7 +632,7 @@ Hot path optimization for large codebases
 def _performance_aware_chunking(self, content: str, profile_data: dict):
     # Use profiling data to inform chunking decisions
     hot_functions = profile_data.get("hot_functions", [])
-    
+
     for chunk in chunks:
         chunk_functions = self._extract_function_names(chunk["content"])
         hotness_score = sum(1 for f in chunk_functions if f in hot_functions)
@@ -606,18 +650,18 @@ def _performance_aware_chunking(self, content: str, profile_data: dict):
 
 ### Direct Tree-sitter Integration vs Current Approach
 
-**Current State**: We use tree-sitter indirectly through the `haskell_tree_sitter` module:
+**Current State**: We use tree-sitter indirectly through the `_haskell_tree_sitter` module:
 
 ```python
 # Current approach in haskell_ast_chunker.py
-ast_chunks = haskell_tree_sitter.get_haskell_ast_chunks_with_fallback(content)
+ast_chunks = _haskell_tree_sitter.get_haskell_ast_chunks_with_fallback(content)
 ```
 
 **Future Enhancement**: Direct integration with tree-sitter Python bindings would allow:
 
 - **Fine-grained AST control**: Direct node traversal and manipulation
 - **Custom chunking strategies**: Based on specific AST node types
-- **Better error handling**: Direct access to syntax error information  
+- **Better error handling**: Direct access to syntax error information
 - **Richer metadata**: AST node types, children, structural information
 - **Performance**: Eliminate wrapper overhead
 
@@ -632,7 +676,7 @@ ast_chunks = haskell_tree_sitter.get_haskell_ast_chunks_with_fallback(content)
 ```haskell
 -- Instead of splitting these syntactically:
 calculatePrice :: Product -> Price
-validateOrder :: Order -> Bool 
+validateOrder :: Order -> Bool
 processPayment :: Payment -> IO Result
 
 -- Semantic chunking would group them as "order processing logic"
@@ -644,14 +688,14 @@ processPayment :: Payment -> IO Result
 -- Group data type with related functions:
 data User = User { name :: String, email :: String }
 validateUser :: User -> Bool
-createUser :: String -> String -> User  
+createUser :: String -> String -> User
 -- ^ These would be chunked together semantically
 ```
 
 #### Domain Concept Clustering
 
 - **Authentication**: login, logout, validateToken functions
-- **Data Processing**: parse, transform, validate functions  
+- **Data Processing**: parse, transform, validate functions
 - **IO Operations**: read, write, network functions
 
 The key insight is moving from **"where does the code split syntactically?"** to **"what code belongs together logically?"**

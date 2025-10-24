@@ -131,9 +131,9 @@ python -m cocoindex_code_mcp_server.main_mcp_server --chunk-factor-percent 50 /p
 - **Tree-sitter Chunking**: Advanced code parsing and chunking using tree-sitter AST for better code understanding
 - **Smart Embedding**: Multiple embedding models automatically selected based on programming language (see [Smart Embedding](#smart-embedding))
 - **Hybrid Search**: Combines vector similarity search with keyword/metadata filtering for precise results
-  - **Vector Search**: Semantic similarity using language-specific code embeddings
-  - **Keyword Search**: Exact matching on metadata fields (functions, classes, imports, etc.)
-  - **Hybrid Search**: Weighted combination of both approaches with configurable weights
+  + **Vector Search**: Semantic similarity using language-specific code embeddings
+  + **Keyword Search**: Exact matching on metadata fields (functions, classes, imports, etc.)
+  + **Hybrid Search**: Weighted combination of both approaches with configurable weights
 
 ## Supported Languages
 
@@ -172,19 +172,19 @@ The server uses **language-aware code embeddings** that automatically select the
 The smart embedding system uses different specialized models optimized for different programming languages:
 
 1. **GraphCodeBERT** (`microsoft/graphcodebert-base`)
-   - **Optimized for:** Python, Java, JavaScript, PHP, Ruby, Go, C, C++
-   - Pre-trained on code from these languages with graph-based code understanding
-   - Best for languages with explicit structure and common patterns
+   + **Optimized for:** Python, Java, JavaScript, PHP, Ruby, Go, C, C++
+   + Pre-trained on code from these languages with graph-based code understanding
+   + Best for languages with explicit structure and common patterns
 
 2. **UniXcoder** (`microsoft/unixcoder-base`)
-   - **Optimized for:** Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart
-   - Unified cross-lingual model for multiple languages
-   - Best for modern statically-typed languages
+   + **Optimized for:** Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart
+   + Unified cross-lingual model for multiple languages
+   + Best for modern statically-typed languages
 
 3. **Fallback Model** (`sentence-transformers/all-mpnet-base-v2`)
-   - Used for: Languages not specifically supported by code models
-   - General-purpose text embedding for broader language support
-   - 768-dimensional embeddings matching code-specific models
+   + Used for: Languages not specifically supported by code models
+   + General-purpose text embedding for broader language support
+   + 768-dimensional embeddings matching code-specific models
 
 ### Automatic Selection
 
@@ -210,7 +210,7 @@ file: Main.hs → language: haskell → model: sentence-transformers/all-mpnet-b
 
 ### Implementation Details
 
-The smart embedding system is implemented as an external wrapper around CocoIndex's `SentenceTransformerEmbed` function, located in `src/cocoindex_code_mcp_server/smart_code_embedding.py`. This approach:
+The smart embedding system is implemented as an external wrapper around CocoIndex's `SentenceTransformerEmbed` function, located in `python/cocoindex_code_mcp_server/smart_code_embedding.py`. This approach:
 
 - Does not modify CocoIndex source code
 - Uses CocoIndex as a pure dependency
@@ -259,24 +259,24 @@ The project uses mypy for type checking. Use the provided scripts:
 
 ### Project Structure
 
-- **`src/cocoindex_code_mcp_server/`**: Main MCP server implementation
-  - `main_mcp_server.py`: MCP server entry point
-  - `cocoindex_config.py`: CocoIndex flow configuration
-  - `smart_code_embedding.py`: Language-aware embedding selection
-  - `mappers.py`: Language and field mappings
-  - `tree_sitter_parser.py`: Tree-sitter parsing utilities
-  - `db/`: Database abstraction layer
+- **`python/cocoindex_code_mcp_server/`**: Main MCP server implementation
+  + `main_mcp_server.py`: MCP server entry point
+  + `cocoindex_config.py`: CocoIndex flow configuration
+  + `smart_code_embedding.py`: Language-aware embedding selection
+  + `mappers.py`: Language and field mappings
+  + `tree_sitter_parser.py`: Tree-sitter parsing utilities
+  + `db/`: Database abstraction layer
     - `pgvector/`: PostgreSQL + pgvector backend
-  - `lang/`: Language-specific handlers
+  + `lang/`: Language-specific handlers
     - `python/`: Python code analyzer
     - `haskell/`: Haskell support (via Rust extension)
 - **`tests/`**: Pytest test suite
 - **`docs/`**: Documentation
-  - `claude/`: Development notes and architecture docs
-  - `cocoindex/`: CocoIndex-specific documentation
-  - `instructions/`: Task instructions and guides
+  + `claude/`: Development notes and architecture docs
+  + `cocoindex/`: CocoIndex-specific documentation
+  + `instructions/`: Task instructions and guides
 - **`rust/`**: Rust components
-  - `src/lib.rs`: Haskell tree-sitter Rust extension
+  + `src/lib.rs`: Haskell tree-sitter Rust extension
 - **`astchunk/`**: ASTChunk submodule for advanced code chunking
 
 ### Running Tests
@@ -289,7 +289,7 @@ pytest -c pytest.ini tests/
 pytest -c pytest.ini tests/test_hybrid_search_integration.py
 
 # Run with coverage
-pytest -c pytest.ini tests/ --cov=src/cocoindex_code_mcp_server --cov-report=html
+pytest -c pytest.ini tests/ --cov=python/cocoindex_code_mcp_server --cov-report=html
 ```
 
 ## Contributing

@@ -7,9 +7,9 @@
 * Reactivate skipped tests
 * Improve haskell support to parity with python
   (improve chunking, check embedding, implement own metadata extractor)
-  + variables should not be detected as functions
+  - variables should not be detected as functions
 * Graph support (for GraphRAG)
-* src/cocoindex_code_mcp_server/lang/python/python_code_analyzer.py is bad
+* python/cocoindex_code_mcp_server/lang/python/python_code_analyzer.py is bad
   and needs more tests and fixing
 * use cocoindex API (instead of `cocoindex evaluate` and `cocoindex update`)
   (new main for this?)
@@ -20,4 +20,4 @@
 * bug report against python mcp library for the resource bug
 * use click for all arguments parsing
 * unify command line argument parsing (in arg_parser_old.py)
-* add hypothesis property testing: https://hypothesis.readthedocs.io/en/latest/
+* add hypothesis property testing: <https://hypothesis.readthedocs.io/en/latest/>

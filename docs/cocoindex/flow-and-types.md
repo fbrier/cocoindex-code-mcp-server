@@ -86,6 +86,7 @@ NDArray[np.float32], NDArray[np.int64]
 ```
 
 **❌ Still unsupported**:
+
 - `typing.Any`
 - Generic `List`, `Dict` without type parameters
 - Complex unions with incompatible types
@@ -106,6 +107,7 @@ def embed_code(code: str) -> Vector[np.float32, Literal[384]]:
 ```
 
 This creates proper PostgreSQL schema:
+
 ```sql
 -- ✅ Correct schema
 embedding vector(384)  -- Supports vector indexes
@@ -160,6 +162,7 @@ These fields should appear in both database schema and evaluation outputs.
 ## Flow Definition Gotchas (Still Relevant)
 
 ### 1. Setup Required
+
 Still true - always run setup after schema changes:
 
 ```bash
@@ -235,6 +238,7 @@ code_embeddings.collect(
 ```
 
 **Why this matters:**
+
 - DataSlice objects represent lazy evaluation pipelines, not immediate values
 - Database storage requires concrete string values
 - Without conversion, database stores empty strings instead of actual code content
@@ -311,11 +315,11 @@ def ensure_unique_chunk_locations(chunks) -> list:
     """Post-process chunks to ensure location fields are unique within the file."""
     if not chunks:
         return chunks
-    
+
     chunk_list = list(chunks) if hasattr(chunks, '__iter__') else [chunks]
     seen_locations = set()
     unique_chunks = []
-    
+
     for i, chunk in enumerate(chunk_list):
         if hasattr(chunk, 'location'):
             # AST chunking Chunk dataclass
@@ -325,16 +329,16 @@ def ensure_unique_chunk_locations(chunks) -> list:
             base_loc = chunk.get("location", f"chunk_{i}")
         else:
             base_loc = f"chunk_{i}"
-        
+
         # Make location unique
         unique_loc = base_loc
         suffix = 0
         while unique_loc in seen_locations:
             suffix += 1
             unique_loc = f"{base_loc}#{suffix}"
-        
+
         seen_locations.add(unique_loc)
-        
+
         # Update chunk with unique location
         if hasattr(chunk, 'location'):
             from dataclasses import replace
@@ -344,9 +348,9 @@ def ensure_unique_chunk_locations(chunks) -> list:
             unique_chunk["location"] = unique_loc
         else:
             unique_chunk = chunk
-            
+
         unique_chunks.append(unique_chunk)
-    
+
     return unique_chunks
 
 # ✅ Apply to ALL chunking methods
@@ -389,6 +393,7 @@ code_embeddings.export(
 ```
 
 **Why this matters**:
+
 - `filename` alone isn't unique (same file in multiple sources)
 - `location` alone isn't unique (SplitRecursively may produce duplicates)
 - `source_name` prevents conflicts when same file appears in multiple paths
@@ -401,7 +406,7 @@ code_embeddings.export(
 # 1. AST chunking (best for supported languages: Python, TypeScript, Java)
 if language in ["Python", "TypeScript", "JavaScript", "Java"]:
     chunks = content.transform(ASTChunkOperation, language=language)
-    
+
 # 2. Default chunking (for unsupported languages: Rust, Go, C++)
 else:
     chunks = content.transform(
@@ -452,7 +457,7 @@ def embed_text(text: str) -> Vector[np.float32, Literal[384]]:
 code_embeddings.collect(
     # Standard fields
     filename=file["filename"],
-    code=chunk["text"], 
+    code=chunk["text"],
     embedding=chunk["embedding"],
     # Custom metadata that should appear in exports
     functions=extract_functions(chunk["text"]),
@@ -480,6 +485,7 @@ except Exception as e:
 ## Metadata Strategy: Development vs Production
 
 ### Development Phase Strategy
+
 Use `cocoindex.Json` for flexible metadata experimentation without frequent schema migrations:
 
 ```python
@@ -494,11 +500,13 @@ class Chunk:
 ```
 
 **Benefits:**
+
 - **Fast iteration** - no `cocoindex setup` needed for metadata changes
 - **Experimental fields** - test complexity scores, type hints, etc. without schema impact
 - **Rapid prototyping** - validate metadata usefulness before production commitment
 
 ### Production Migration Strategy
+
 Extract proven metadata fields into dedicated PostgreSQL columns:
 
 ```python
@@ -509,7 +517,7 @@ code_embeddings.collect(
     location=chunk["location"],
     # Promoted from metadata to dedicated columns for performance:
     functions=chunk["functions"],           # str column with indexing
-    classes=chunk["classes"],              # str column with indexing  
+    classes=chunk["classes"],              # str column with indexing
     complexity_score=chunk["complexity"],   # int column for range queries
     has_type_hints=chunk["has_type_hints"], # bool column for filtering
     # Keep metadata for remaining experimental fields
@@ -518,6 +526,7 @@ code_embeddings.collect(
 ```
 
 **Production advantages:**
+
 - **Query performance** - dedicated columns enable proper indexing
 - **pgvector integration** - direct column access for vector operations
 - **Type safety** - PostgreSQL enforces column types
@@ -538,7 +547,7 @@ def create_metadata_json(content, language, metadata_dict):
         "analysis_method": metadata_dict.get("analysis_method", "unknown"),
         "tree_sitter_chunking_error": metadata_dict.get("tree_sitter_chunking_error", False),
         "tree_sitter_analyze_error": metadata_dict.get("tree_sitter_analyze_error", False),
-        
+
         # Custom properties you want in metadata_json:
         "file_size": len(content),
         "has_tests": "test" in content.lower(),
@@ -567,7 +576,7 @@ def validate_chunk_metadata(metadata: Dict[str, Any]) -> ChunkMetadata:
 # In collector - fields collected directly become result properties:
 code_embeddings.collect(
     filename=file["filename"],
-    code=chunk["content"], 
+    code=chunk["content"],
     # Direct result fields (not in metadata_json):
     chunking_method=chunk["chunking_method"],  # From AST chunkers
     functions=str(metadata_dict.get("functions", [])),
@@ -605,7 +614,7 @@ for chunk in chunks:
         chunking_method = chunk.chunking_method  # Extract from dataclass
     elif isinstance(chunk, dict):
         chunking_method = chunk.get("chunking_method", "unknown")
-    
+
     code_embeddings.collect(
         chunking_method=chunking_method,  # Direct field from dataclass
         # ... other fields
@@ -662,7 +671,7 @@ When adding new metadata fields, update schemas.py:
 ```python
 class ChunkMetadata(TypedDict, total=False):
     # Existing fields...
-    
+
     # Your new fields:
     file_size: int
     has_tests: bool
@@ -694,8 +703,9 @@ Following these updated practices will ensure proper pgvector integration, preve
 Successfully implemented parameterized CocoIndex flows for test isolation, resolving critical "column 'chunking_method' does not exist" errors and enabling parallel test execution.
 
 **Key Achievement:** Created separate database tables for each test type:
+
 - `keywordsearchtest_code_embeddings` for keyword search tests
-- `vectorsearchtest_code_embeddings` for vector search tests  
+- `vectorsearchtest_code_embeddings` for vector search tests
 - `hybridsearchtest_code_embeddings` for hybrid search tests
 
 **Technical Solution:** Used `cocoindex.open_flow()` with parameterized flow definitions that reuse main flow logic but export to different table names.
@@ -707,21 +717,25 @@ Successfully implemented parameterized CocoIndex flows for test isolation, resol
 ## Real-World Lessons Learned
 
 ### PostgreSQL Conflict Resolution
+
 The most common production issue is duplicate primary keys causing `ON CONFLICT DO UPDATE command cannot affect row a second time` errors. This happens because:
 
 1. **SplitRecursively doesn't guarantee unique locations** for chunks within the same file
-2. **Multiple processing runs** of the same file generate identical keys  
+2. **Multiple processing runs** of the same file generate identical keys
 3. **Path overlaps** cause the same file to be processed multiple times
 
 The solution is **mandatory post-processing** of all chunks to ensure location uniqueness, regardless of chunking method used.
 
 ### Chunking Method Selection Strategy
+
 - **AST chunking**: Use for languages with good AST support (Python, TypeScript, Java, C#)
 - **Default chunking**: Fallback for other languages (Rust, Go, Markdown, etc.)
 - **Always post-process**: Both methods require unique location enforcement
 
 ### Database Schema Evolution
+
 When adding new metadata fields to collection, remember:
+
 1. Run `cocoindex setup` to update schema
 2. Test with `cocoindex evaluate` to verify field population
 3. Check that evaluation outputs show your custom fields
@@ -732,6 +746,7 @@ When adding new metadata fields to collection, remember:
 The most complex CocoIndex issues often involve the type system and serialization. Here are key debugging lessons:
 
 #### 1. ValueType Deserialization Errors
+
 **Root cause:** Union types in dataclass fields cause serialization failures.
 
 ```python
@@ -741,12 +756,13 @@ class Chunk:
     metadata: Dict[str, Union[str, int, float, bool]]  # Breaks ValueType enum
 
 # ✅ SOLUTION: Use cocoindex.Json for flexible metadata
-@dataclass  
+@dataclass
 class Chunk:
     metadata: cocoindex.Json  # Handles any JSON-serializable data
 ```
 
 #### 2. Function Parameter Type Mismatches
+
 **Root cause:** Functions expecting one type but receiving another due to schema changes.
 
 ```python
@@ -763,6 +779,7 @@ def extract_field(metadata_json: cocoindex.Json) -> str:
 ```
 
 #### 3. Regex Pattern Issues in Language Configurations
+
 **Root cause:** Unescaped special characters in regex patterns.
 
 ```python
@@ -771,13 +788,14 @@ separators = [
     r"\n{-#\s*[A-Z]+",  # Breaks: { is quantifier syntax
 ]
 
-# ✅ SOLUTION: Escape special regex characters  
+# ✅ SOLUTION: Escape special regex characters
 separators = [
     r"\n\{-#\s*[A-Z]+",  # Works: \{ matches literal brace
 ]
 ```
 
 #### 4. Metadata Transform Function Type Consistency
+
 **Root cause:** Inconsistent return types between metadata creation functions cause type mismatches in transform chains.
 
 ```python
@@ -786,7 +804,7 @@ separators = [
 def create_default_metadata(content: str) -> cocoindex.Json:
     return {"functions": [], "classes": []}  # Returns dict
 
-@cocoindex.op.function() 
+@cocoindex.op.function()
 def extract_code_metadata(text: str, language: str) -> str:
     return json.dumps({"functions": [], "classes": []})  # Returns string
 
@@ -822,6 +840,7 @@ def extract_functions(metadata_json: str) -> str:
 **Key insight:** CocoIndex transforms serialize return values, so functions receiving transformed data should expect serialized types (strings for JSON), not the original types (dicts for `cocoindex.Json`).
 
 #### 5. Development Workflow for Type Issues
+
 When encountering type system errors:
 
 1. **Isolate the problem** - Create minimal reproduction script
@@ -831,6 +850,7 @@ When encountering type system errors:
 5. **Use development metadata strategy** - Keep experimental fields in `cocoindex.Json` until proven
 
 #### 6. Type System Best Practices Summary
+
 - **Avoid unions in dataclass fields** - Use `cocoindex.Json` for flexible metadata
 - **Keep type annotations** - They are required, not optional in modern CocoIndex
 - **Ensure consistent metadata function types** - All metadata creation functions should return the same type (preferably JSON strings)
@@ -866,7 +886,7 @@ class PostgresBackend:
             from ..cocoindex_config import extract_code_metadata
             metadata_json_str = extract_code_metadata(code, language, filename)
             analysis_metadata = json.loads(metadata_json_str)
-            
+
             if analysis_metadata is not None:
                 pg_row.update({
                     "functions": analysis_metadata.get("functions", []),
@@ -887,7 +907,7 @@ class PostgresBackend:
 ```python
 # Sources of language case mismatches:
 "Python" vs "python" vs "PYTHON"    # File extensions vs user input vs database
-"C++" vs "cpp" vs "CPP"             # Database storage vs query parameters  
+"C++" vs "cpp" vs "CPP"             # Database storage vs query parameters
 "JavaScript" vs "javascript" vs "js" # Full names vs abbreviations
 ```
 
@@ -897,7 +917,7 @@ class PostgresBackend:
 def select_language_analyzer(language: str) -> callable:
     """Select appropriate analyzer with case-insensitive matching."""
     lang_lower = language.lower() if language else ""
-    
+
     # Handle all common variations
     if lang_lower in ["python", "py"]:
         from .language_handlers.python_visitor import analyze_python_code
@@ -993,12 +1013,13 @@ def get_language_parser(language: str):
 ```
 
 **Dependency Management Best Practices:**
+
 ```python
 # In pyproject.toml, ensure all required tree-sitter languages are listed:
 dependencies = [
     "tree-sitter>=0.20.0",
     "tree-sitter-python>=0.20.0",
-    "tree-sitter-rust>=0.20.0", 
+    "tree-sitter-rust>=0.20.0",
     "tree-sitter-java>=0.20.0",
     "tree-sitter-javascript>=0.23.1",  # Note version requirements
     "tree-sitter-typescript>=0.20.0",
@@ -1076,15 +1097,15 @@ def test_end_to_end_language_analysis(language, file_extension, expected_functio
     # 1. Test CocoIndex flow analysis
     cocoindex_result = run_cocoindex_analysis(test_code, language)
     assert cocoindex_result["analysis_method"] != "none"
-    
-    # 2. Test MCP server backend analysis  
+
+    # 2. Test MCP server backend analysis
     mcp_result = query_mcp_server(f"language:{language}")
     assert len(mcp_result["results"]) > 0
-    
+
     # 3. Test database storage consistency
     db_result = query_database(f"language = '{language}'")
     assert db_result["analysis_method"] != "none"
-    
+
     # 4. Test function extraction across all layers
     for expected_func in expected_functions:
         assert expected_func in cocoindex_result["functions"]
@@ -1118,17 +1139,18 @@ _LANGUAGE_ANALYZERS = {}
 def get_cached_analyzer(language: str):
     """Get cached language analyzer to avoid repeated initialization."""
     lang_key = language.lower()
-    
+
     if lang_key not in _LANGUAGE_ANALYZERS:
         analyzer = select_language_analyzer(language)
         if analyzer:
             _LANGUAGE_ANALYZERS[lang_key] = analyzer
             LOGGER.info(f"Cached analyzer for {language}")
-    
+
     return _LANGUAGE_ANALYZERS.get(lang_key)
 ```
 
 This caching is particularly important for:
+
 - **Tree-sitter parser initialization** (expensive grammar loading)
 - **Model loading** for embedding-based analysis
 - **Regex compilation** for pattern-based metadata extraction
@@ -1145,6 +1167,7 @@ cocoindex_code_mcp_server.cocoindex_config: INFO     Using fallback model for Da
 ```
 
 **What this means:**
+
 - CocoIndex's static type analysis cannot determine the exact string type of certain fields during flow compilation
 - The engine falls back to a generic model for type inference rather than using specialized type handlers
 - This is a limitation of CocoIndex's static analysis, not an error in your code
@@ -1153,6 +1176,7 @@ cocoindex_code_mcp_server.cocoindex_config: INFO     Using fallback model for Da
 ### 2. Common Scenarios Triggering Fallback Models
 
 **Language Detection Fields:**
+
 ```python
 # This pattern often triggers fallback model warnings:
 file["language"] = file["filename"].transform(extract_language)
@@ -1166,6 +1190,7 @@ def extract_language(filename: str) -> str:
 ```
 
 **Dynamic Field Creation:**
+
 - Fields created through transform operations on DataSlices
 - String fields with values determined at runtime
 - Fields that depend on file content analysis
@@ -1173,15 +1198,18 @@ def extract_language(filename: str) -> str:
 ### 3. Fallback Model Impact and Mitigation
 
 **✅ FUNCTIONAL IMPACT**: Minimal to none
+
 - Your flows execute correctly
-- Data is processed and stored properly  
+- Data is processed and stored properly
 - Type checking still works at runtime
 
 **✅ PERFORMANCE IMPACT**: Generally negligible
+
 - Fallback models are typically just less optimized code paths
 - No significant performance degradation observed
 
 **⚠️ WHEN TO INVESTIGATE**: Only if you notice:
+
 - Actual processing failures
 - Incorrect data in outputs
 - Significant performance issues
@@ -1195,27 +1223,27 @@ def extract_language(filename: str) -> str:
 def extract_language(filename: str) -> str:
     """Extract language with explicit fallback handling."""
     basename = os.path.basename(filename)
-    
+
     # Handle special files without extensions
     if basename.lower() in ["makefile", "dockerfile", "jenkinsfile"]:
         return basename.lower()
-    
+
     # Handle special patterns
     special_patterns = {
         "cmakelists": "cmake",
-        "build.gradle": "gradle", 
+        "build.gradle": "gradle",
         "pom.xml": "maven",
         "docker-compose": "dockerfile",
         "go.": "go"
     }
-    
+
     for pattern, lang in special_patterns.items():
         if pattern in basename.lower():
             return lang
-    
+
     # Get extension and map to language
     ext = os.path.splitext(filename)[1].lower()
-    
+
     if ext in TREE_SITTER_LANGUAGE_MAP:
         return TREE_SITTER_LANGUAGE_MAP[ext]
     elif ext:
@@ -1227,6 +1255,7 @@ def extract_language(filename: str) -> str:
 ```
 
 **Benefits of explicit fallback handling:**
+
 - Consistent return values
 - Better debugging information
 - Reduced ambiguity in type inference
@@ -1259,6 +1288,7 @@ chunk["analysis_method"] = chunk["metadata"].transform(extract_analysis_method_f
 ```
 
 **Why this matters:**
+
 - CocoIndex needs to serialize and track function dependencies
 - Lambda functions cannot be properly serialized by the flow system
 - Decorated functions provide proper type information for the engine
@@ -1322,6 +1352,7 @@ def extract_complexity_score_field(metadata_json: str) -> int:
 5. **Consider if action is needed** - Most fallback warnings can be safely ignored
 
 **Debugging workflow:**
+
 ```python
 # Test individual functions outside of flows:
 def test_language_extraction():
@@ -1336,6 +1367,7 @@ def test_language_extraction():
 ### 8. Best Practices for Type-Safe CocoIndex Functions
 
 **✅ Type Safety Checklist:**
+
 - Always use `@cocoindex.op.function()` decorators for transform functions
 - Provide explicit type annotations for parameters and return values
 - Handle edge cases with explicit default values
@@ -1344,11 +1376,13 @@ def test_language_extraction():
 - Test functions independently before integration
 
 **✅ Acceptable Fallback Scenarios:**
+
 - Language detection from dynamic file analysis
 - Fields derived from runtime content analysis
 - Transform chains with complex data dependencies
 
 **⚠️ Investigate Further When:**
+
 - Functions fail to execute (not just warnings)
 - Data appears incorrectly in database
 - Performance significantly degrades
@@ -1398,14 +1432,14 @@ class SearchTestFlowParameters:
 def search_test_flow_def(params: SearchTestFlowParameters):
     """
     Create a parameterized flow definition for search tests.
-    
+
     This reuses the same flow logic but allows different source paths and table names.
     """
     def _flow_def(flow_builder: cocoindex.FlowBuilder, data_scope: cocoindex.DataScope):
         # Import all necessary functions from main flow
         from cocoindex_code_mcp_server.cocoindex_config import (
-            SOURCE_CONFIG, extract_language, get_chunking_params, 
-            code_to_embedding, extract_code_metadata, 
+            SOURCE_CONFIG, extract_language, get_chunking_params,
+            code_to_embedding, extract_code_metadata,
             # Import ALL metadata extraction functions to match main flow schema
             extract_functions_field, extract_classes_field, extract_imports_field,
             extract_complexity_score_field, extract_has_type_hints_field,
@@ -1414,21 +1448,21 @@ def search_test_flow_def(params: SearchTestFlowParameters):
             # ... import all other extract_*_field functions
             convert_dataslice_to_string, list_to_space_separated_str, CUSTOM_LANGUAGES
         )
-        
+
         # Configure source with the specified path
         source_config = SOURCE_CONFIG.copy()
         source_config['path'] = params.source_path
-        
+
         data_scope["files"] = flow_builder.add_source(
             cocoindex.sources.LocalFile(**source_config)
         )
-        
+
         code_embeddings = data_scope.add_collector()
-        
+
         with data_scope["files"].row() as file:
             file["language"] = file["filename"].transform(extract_language)
             file["chunking_params"] = file["language"].transform(get_chunking_params)
-            
+
             # Use same chunking logic as main flow
             raw_chunks = file["content"].transform(
                 cocoindex.functions.SplitRecursively(custom_languages=CUSTOM_LANGUAGES),
@@ -1437,7 +1471,7 @@ def search_test_flow_def(params: SearchTestFlowParameters):
                 min_chunk_size=file["chunking_params"]["min_chunk_size"],
                 chunk_overlap=file["chunking_params"]["chunk_overlap"],
             )
-            
+
             with raw_chunks.row() as chunk:
                 chunk["embedding"] = chunk["text"].call(code_to_embedding)
                 chunk["extracted_metadata"] = chunk["text"].transform(
@@ -1446,7 +1480,7 @@ def search_test_flow_def(params: SearchTestFlowParameters):
                     filename=file["filename"],
                     existing_metadata_json=""
                 )
-                
+
                 # Extract ALL metadata fields to match main flow schema
                 chunk["functions"] = chunk["extracted_metadata"].transform(extract_functions_field)
                 chunk["classes"] = chunk["extracted_metadata"].transform(extract_classes_field)
@@ -1456,7 +1490,7 @@ def search_test_flow_def(params: SearchTestFlowParameters):
                 chunk["analysis_method"] = chunk["extracted_metadata"].transform(extract_analysis_method_field)
                 chunk["chunking_method"] = chunk["extracted_metadata"].transform(extract_chunking_method_field)
                 # ... extract all other metadata fields
-                
+
                 code_embeddings.collect(
                     filename=file["filename"],
                     language=file["language"],
@@ -1467,21 +1501,21 @@ def search_test_flow_def(params: SearchTestFlowParameters):
                     end=chunk["end"],
                     source_name="files",
                     metadata_json=chunk["extracted_metadata"],
-                    
+
                     # Include ALL metadata fields from main flow
                     complexity_score=chunk["complexity_score"],
                     has_type_hints=chunk["has_type_hints"],
                     analysis_method=chunk["analysis_method"],
                     chunking_method=chunk["chunking_method"],
                     # ... include all other metadata fields
-                    
+
                     # Convert list fields to space-separated strings
                     functions=chunk["functions"].transform(list_to_space_separated_str),
                     classes=chunk["classes"].transform(list_to_space_separated_str),
                     imports=chunk["imports"].transform(list_to_space_separated_str),
                     # ... convert all other list fields
                 )
-        
+
         # Export to the specified target table
         code_embeddings.export(
             "code_embeddings",
@@ -1489,44 +1523,44 @@ def search_test_flow_def(params: SearchTestFlowParameters):
             primary_key_fields=["filename", "location", "source_name"],
             vector_indexes=[
                 cocoindex.VectorIndexDef(
-                    field_name="embedding", 
+                    field_name="embedding",
                     metric=cocoindex.VectorSimilarityMetric.COSINE_SIMILARITY,
                 )
             ],
         )
-    
+
     return _flow_def
 
 def create_search_test_flow(test_type: str, source_path: str = "tmp"):
     """
     Create a search test flow for the specified test type.
-    
+
     Args:
         test_type: One of 'keyword', 'vector', 'hybrid'
         source_path: Path to the source files (default: "tmp")
-    
+
     Returns:
         Configured CocoIndex flow instance
     """
     # Generate table name based on test type
     table_names = {
         'keyword': 'keywordsearchtest_code_embeddings',
-        'vector': 'vectorsearchtest_code_embeddings', 
+        'vector': 'vectorsearchtest_code_embeddings',
         'hybrid': 'hybridsearchtest_code_embeddings'
     }
-    
+
     if test_type not in table_names:
         raise ValueError(f"Unknown test type: {test_type}. Must be one of {list(table_names.keys())}")
-    
+
     table_name = table_names[test_type]
     flow_name = f"SearchTest_{test_type.title()}"
-    
+
     # Create parameters for this test flow
     params = SearchTestFlowParameters(
         source_path=source_path,
         target_table_name=table_name
     )
-    
+
     # Open flow with parameterized definition
     flow = cocoindex.open_flow(flow_name, search_test_flow_def(params))
     return flow
@@ -1535,16 +1569,19 @@ def create_search_test_flow(test_type: str, source_path: str = "tmp"):
 ### 2. Key Benefits of Parameterized Flows
 
 **✅ Test Isolation:**
+
 - Each test type gets its own dedicated table
 - No data conflicts between different test suites
 - Parallel test execution without interference
 
 **✅ Schema Consistency:**
+
 - Reuses the same flow logic as the main production flow
 - Ensures test and production schemas remain synchronized
 - Automatically includes all metadata fields (chunking_method, etc.)
 
 **✅ Maintenance Efficiency:**
+
 - Single source of truth for flow logic
 - Updates to main flow automatically propagate to test flows
 - No need to manually sync test flow definitions
@@ -1557,7 +1594,7 @@ class CocoIndexTestInfrastructure:
         self.test_type = test_type
         self.flow_def = None
         self.table_name = None
-        
+
     async def setup(self) -> None:
         """Set up test infrastructure with parameterized flows."""
         if self.test_type:
@@ -1568,20 +1605,20 @@ class CocoIndexTestInfrastructure:
             # Use default flow for general tests
             from cocoindex_code_mcp_server.cocoindex_config import code_embedding_flow
             self.flow_def = code_embedding_flow
-            
+
         # Setup the flow
         if self.flow_def:
             self.flow_def.setup()
-            
+
         # Initialize search engine with test-specific table
         await self._initialize_search_engine()
-        
+
     async def _initialize_search_engine(self) -> None:
         """Initialize search engine with test-specific table name."""
         table_name = self.table_name if self.table_name else get_default_db_name()
         if not table_name:
             raise ValueError("Table name not set. Ensure setup() was called first.")
-            
+
         # Create search engine with parameterized table name
         self.search_engine = HybridSearchEngine(
             db_name=table_name,  # ✅ Use test-specific table
@@ -1599,7 +1636,7 @@ infrastructure_kwargs['test_type'] = 'keyword'  # ✅ Use separate keyword test 
 async with CocoIndexTestInfrastructure(**infrastructure_kwargs) as infrastructure:
     # This creates and uses keywordsearchtest_code_embeddings table
     # No interference with other test types
-    
+
     results = await infrastructure.search_engine.search(
         keyword_query="language:python"
     )
@@ -1643,22 +1680,26 @@ code_embeddings.collect(
 ### 6. Parameterized Flow Best Practices
 
 **✅ Schema Synchronization:**
+
 - Import ALL extraction functions from main flow configuration
 - Include ALL metadata fields in the collector call
 - Use the same chunking logic as production
 - Apply the same vector index configuration
 
 **✅ Table Naming Convention:**
+
 - Use descriptive prefixes: `keywordsearchtest_`, `vectorsearchtest_`, `hybridsearchtest_`
 - Suffix with `_code_embeddings` to match main table pattern
 - Ensure table names are valid PostgreSQL identifiers
 
 **✅ Parameter Design:**
+
 - Use dataclasses for type safety: `SearchTestFlowParameters`
 - Include both source path and target table name for flexibility
 - Allow parameterization of other configuration options as needed
 
 **✅ Flow Management:**
+
 - Use `cocoindex.open_flow()` with descriptive flow names
 - Cache flow instances to avoid repeated initialization
 - Ensure proper flow setup and cleanup in test infrastructure
@@ -1688,6 +1729,7 @@ code_embeddings.collect(
 7. **Clean up old shared tables** once migration is complete
 
 **Verification checklist:**
+
 - [ ] Each test type creates its own table
 - [ ] All metadata fields from main flow are included
 - [ ] Search functionality works with test-specific tables

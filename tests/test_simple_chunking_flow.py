@@ -7,13 +7,13 @@ import os
 import tempfile
 
 import pytest
-from dotenv import load_dotenv
-
-import cocoindex
 from cocoindex_code_mcp_server.cocoindex_config import (
     code_embedding_flow,
     update_flow_config,
 )
+from dotenv import load_dotenv
+
+import cocoindex
 
 # Load environment variables
 load_dotenv()
@@ -31,7 +31,6 @@ class TestSimpleChunkingFlow:
         print(f"Using database: {os.environ.get('COCOINDEX_DATABASE_URL')}")
         cocoindex.init()
         # Import the flow to register it
-        from cocoindex_code_mcp_server.cocoindex_config import code_embedding_flow
         yield
 
     def test_flow_setup_with_new_function(self):

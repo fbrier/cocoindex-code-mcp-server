@@ -23,15 +23,15 @@ class TestRustHaskellErrorHandling:
     def test_rust_haskell_import(self):
         """Test that the Rust module can be imported."""
         try:
-            import haskell_tree_sitter as rust_lib
-            assert hasattr(rust_lib, 'get_haskell_ast_chunks_enhanced')
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
+            assert hasattr(hts, 'get_haskell_ast_chunks_enhanced')
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
     def test_haskell_buggy_code_high_errors(self):
         """Test that buggy code with many errors triggers regex fallback."""
         try:
-            import haskell_tree_sitter as rust_lib
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
@@ -42,20 +42,21 @@ class TestRustHaskellErrorHandling:
         with open(buggy_file, 'r') as f:
             buggy_code = f.read()
 
-        result = rust_lib.get_haskell_ast_chunks_enhanced(buggy_code)
+        result = hts.get_haskell_ast_chunks_enhanced(buggy_code)
 
         # Should trigger fallback due to many errors
         assert result.error_stats().error_count(
         ) >= ERROR_FALLBACK_THRESHOLD, f"Expected at least {ERROR_FALLBACK_THRESHOLD} errors"
         assert result.error_stats().should_fallback(), "Should trigger fallback"
-        assert result.chunking_method() == "rust_haskell_regex_fallback_2", f"Expected rust_haskell_regex_fallback_2, got {result.chunking_method()}"
+        assert result.chunking_method() == "rust_haskell_regex_fallback_2", f"Expected rust_haskell_regex_fallback_2, got {
+            result.chunking_method()}"
         assert len(result.chunks()) > 0, "Should have fallback chunks"
         assert result.coverage_complete(), "Coverage should be complete"
 
     def test_haskell_minor_errors_ast_recovery(self):
         """Test that code with 1-2 errors uses AST with error recovery."""
         try:
-            import haskell_tree_sitter as rust_lib
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
@@ -66,7 +67,7 @@ class TestRustHaskellErrorHandling:
         with open(minor_errors_file, 'r') as f:
             minor_errors_code = f.read()
 
-        result = rust_lib.get_haskell_ast_chunks_enhanced(minor_errors_code)
+        result = hts.get_haskell_ast_chunks_enhanced(minor_errors_code)
 
         # Should use AST with error recovery (errors under threshold)
         error_count = result.error_stats().error_count()
@@ -81,7 +82,7 @@ class TestRustHaskellErrorHandling:
     def test_haskell_good_code_pure_ast(self):
         """Test that good code uses pure AST chunking."""
         try:
-            import haskell_tree_sitter as rust_lib
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
@@ -97,12 +98,13 @@ multiply x y = x * y
 data Color = Red | Green | Blue
 '''
 
-        result = rust_lib.get_haskell_ast_chunks_enhanced(good_code)
+        result = hts.get_haskell_ast_chunks_enhanced(good_code)
 
         # Should use pure AST chunking (0 errors)
         assert result.error_stats().error_count() == 0, "Expected 0 errors"
         assert not result.error_stats().should_fallback(), "Should not trigger fallback"
-        assert result.chunking_method() == "rust_haskell_ast", f"Expected rust_haskell_ast, got {result.chunking_method()}"
+        assert result.chunking_method() == "rust_haskell_ast", f"Expected rust_haskell_ast, got {
+            result.chunking_method()}"
         assert len(result.chunks()) > 0, "Should have AST chunks"
         assert result.coverage_complete(), "Coverage should be complete"
 
@@ -113,9 +115,7 @@ class TestPythonTreeSitterErrorHandling:
     def test_python_error_stats_initialization(self):
         """Test that Python error detection infrastructure is available."""
         try:
-            from cocoindex_code_mcp_server.ast_visitor import (
-                GenericMetadataVisitor,
-            )
+            from cocoindex_code_mcp_server.ast_visitor import GenericMetadataVisitor
         except ImportError:
             pytest.skip("Python ast_visitor module not available")
 
@@ -259,7 +259,7 @@ class TestErrorRecoveryMechanisms:
     def test_error_recovery_preserves_valid_chunks(self):
         """Test that error recovery preserves valid semantic chunks."""
         try:
-            import haskell_tree_sitter as rust_lib
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
@@ -279,7 +279,7 @@ multiply :: Int -> Int -> Int
 multiply x y = x * y
 '''
 
-        result = rust_lib.get_haskell_ast_chunks_enhanced(mixed_code)
+        result = hts.get_haskell_ast_chunks_enhanced(mixed_code)
 
         # Should recover and get chunks for valid parts
         assert len(result.chunks()) > 0, "Should have chunks"
@@ -294,7 +294,7 @@ multiply x y = x * y
     def test_complete_coverage_verification(self):
         """Test that error recovery ensures complete code coverage."""
         try:
-            import haskell_tree_sitter as rust_lib
+            import cocoindex_code_mcp_server._haskell_tree_sitter as hts
         except ImportError:
             pytest.skip("Rust haskell_tree_sitter module not available")
 
@@ -307,7 +307,7 @@ add x y = x + y
 bad = { field: value
 '''
 
-        result = rust_lib.get_haskell_ast_chunks_enhanced(error_code)
+        result = hts.get_haskell_ast_chunks_enhanced(error_code)
 
         # Should ensure complete coverage
         assert result.coverage_complete(), "Should have complete coverage"

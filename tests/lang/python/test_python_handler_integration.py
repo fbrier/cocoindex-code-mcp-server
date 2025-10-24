@@ -12,7 +12,6 @@ from types import FunctionType
 from typing import cast
 
 import pytest
-
 from cocoindex_code_mcp_server.cocoindex_config import (
     PYTHON_HANDLER_AVAILABLE,
     extract_code_metadata,
@@ -78,7 +77,10 @@ def utility_function(x: int, y: int = 10) -> int:
     else:
         # Verify that we get enhanced metadata from the PythonNodeHandler
         assert 'analysis_method' in metadata
-        assert metadata['analysis_method'] in ['tree_sitter', 'tree_sitter+python_ast', 'tree_sitter+python_code_analyzer']
+        assert metadata['analysis_method'] in [
+            'tree_sitter',
+            'tree_sitter+python_ast',
+            'tree_sitter+python_code_analyzer']
 
         # Verify function detection
         assert 'functions' in metadata
@@ -192,7 +194,12 @@ def incomplete_function(
     assert 'analysis_method' in metadata
 
     # Analysis method might be fallback
-    assert metadata['analysis_method'] in ['basic', 'python_ast', 'tree_sitter', 'tree_sitter+python_ast', 'tree_sitter+python_code_analyzer']
+    assert metadata['analysis_method'] in [
+        'basic',
+        'python_ast',
+        'tree_sitter',
+        'tree_sitter+python_ast',
+        'tree_sitter+python_code_analyzer']
 
     print("✅ Python handler fallback test passed!")
 

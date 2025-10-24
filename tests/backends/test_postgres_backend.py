@@ -8,13 +8,11 @@ from typing import Any, Dict, List
 
 import numpy as np
 import pytest
+from cocoindex_code_mcp_server.backends.postgres_backend import PostgresBackend
+from cocoindex_code_mcp_server.keyword_search_parser_lark import SearchCondition
+from cocoindex_code_mcp_server.schemas import SearchResultType
 
 from cocoindex_code_mcp_server.backends import QueryFilters, SearchResult
-from cocoindex_code_mcp_server.backends.postgres_backend import PostgresBackend
-from cocoindex_code_mcp_server.keyword_search_parser_lark import (
-    SearchCondition,
-)
-from cocoindex_code_mcp_server.schemas import SearchResultType
 
 
 def build_mock_row(data: Dict[str, Any], fields: List[str]) -> tuple:

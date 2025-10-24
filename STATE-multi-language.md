@@ -2,14 +2,15 @@
 
 ## Current Status: ✅ FULLY OPERATIONAL - MULTI-LANGUAGE READY
 
-**Date:** August 1, 2025  
+**Date:** August 1, 2025
 **Context:** Multi-language hybrid search system with comprehensive test coverage
 
 ## 🎉 Major Achievements Completed
 
 ### ✅ RESOLVED: All Critical Issues Fixed
+
 1. **Chunk.keys() AttributeError** - Fixed missing keys() method in Chunk class
-2. **Test Fixture Indexing** - Resolved by copying fixtures to /tmp directory  
+2. **Test Fixture Indexing** - Resolved by copying fixtures to /tmp directory
 3. **Multi-language Support** - Extended to 9 languages with comprehensive test coverage
 4. **Hybrid Search Pipeline** - Fully functional with 565 indexed source files
 
@@ -18,6 +19,7 @@
 ### ✅ COMPLETED: Root Cause Analysis
 
 **Timeline of Discovery:**
+
 1. Initial symptom: Hybrid search test failing with no results
 2. Database investigation: All entries show `analysis_method: "unknown"`
 3. Direct testing: Python analyzer works correctly when called directly
@@ -28,19 +30,21 @@
 ### ✅ COMPLETED: Critical Bug Fixes
 
 **Fixed Issues:**
+
 1. **Chunk Class Dictionary Compatibility:**
    - Added `__contains__()` method for `'key' in chunk` syntax
    - Fixed `__getitem__()` to handle both string and integer access
-   - Location: `/workspaces/rust/src/cocoindex_code_mcp_server/ast_chunking.py:52-43`
+   - Location: `/workspaces/rust/python/cocoindex_code_mcp_server/ast_chunking.py:52-43`
 
 2. **CRITICAL: Metadata Preservation Bug:**
    - `ensure_unique_chunk_locations()` was setting `metadata={}` (empty)
    - **FIXED**: Now preserves `metadata=chunk.metadata` from original chunks
-   - Location: `/workspaces/rust/src/cocoindex_code_mcp_server/cocoindex_config.py:498-501`
+   - Location: `/workspaces/rust/python/cocoindex_code_mcp_server/cocoindex_config.py:498-501`
 
 ### ✅ VERIFIED: Component Testing
 
 **Working Components:**
+
 - Python code analyzer: ✅ Produces correct metadata with `analysis_method: "tree_sitter+python_ast"`
 - AST chunking operation: ✅ Produces valid non-empty chunks with proper metadata
 - CocoIndex ASTChunkOperation: ✅ Integration works correctly
@@ -50,11 +54,13 @@
 **Problem:** Despite fixing the metadata preservation bug, CocoIndex evaluation still shows empty chunks.
 
 **Latest Test Results:**
+
 - File: `cpp_visitor.py`
-- Evaluation output: Still shows `code: ""` 
+- Evaluation output: Still shows `code: ""`
 - Configuration: Attempted single-file test but evaluation ran on ALL files
 
 **Next Steps:**
+
 1. ~~Investigate why single-file configuration didn't work~~
 2. ~~Test the metadata fix with proper single-file evaluation~~
 3. ~~Verify chunks now contain both content and metadata~~
@@ -63,12 +69,13 @@
 ## Technical Details
 
 ### Database Schema
+
 ```sql
 -- PostgreSQL with pgvector
 CREATE TABLE code_embeddings (
     filename TEXT,
     location TEXT,
-    code TEXT,           -- ❌ Currently empty 
+    code TEXT,           -- ❌ Currently empty
     embedding VECTOR,
     metadata_json JSONB, -- ❌ Currently shows analysis_method: "unknown"
     functions TEXT,
@@ -78,6 +85,7 @@ CREATE TABLE code_embeddings (
 ```
 
 ### Flow Architecture
+
 ```
 LocalFile → Language Detection → AST Chunking → ensure_unique_chunk_locations → Embedding → Metadata Extraction → PostgreSQL
                                                         ↑
@@ -87,11 +95,11 @@ LocalFile → Language Detection → AST Chunking → ensure_unique_chunk_locati
 
 ### Key Files Modified
 
-1. **`/workspaces/rust/src/cocoindex_code_mcp_server/ast_chunking.py`**
+1. **`/workspaces/rust/python/cocoindex_code_mcp_server/ast_chunking.py`**
    - Fixed Chunk class dictionary compatibility
    - Lines 29-54: Added `__contains__` and fixed `__getitem__`
 
-2. **`/workspaces/rust/src/cocoindex_code_mcp_server/cocoindex_config.py`** 
+2. **`/workspaces/rust/python/cocoindex_code_mcp_server/cocoindex_config.py`**
    - **CRITICAL FIX**: Line 501 changed from `metadata={}` to `metadata=metadata`
    - This preserves AST chunking metadata through the pipeline
 
@@ -105,7 +113,7 @@ LocalFile → Language Detection → AST Chunking → ensure_unique_chunk_locati
 ## Debugging Tools Created
 
 1. **`test_cocoindex_chunking.py`** - Tests AST chunker directly
-2. **`test_ast_chunk_operation.py`** - Tests CocoIndex operation 
+2. **`test_ast_chunk_operation.py`** - Tests CocoIndex operation
 3. **`configure_single_file_test.py`** - Configures single-file testing
 4. **Flow Debug Guide** - Comprehensive debugging documentation
 
@@ -113,7 +121,7 @@ LocalFile → Language Detection → AST Chunking → ensure_unique_chunk_locati
 
 ```python
 _global_flow_config = {
-    'paths': ['src/cocoindex_code_mcp_server/language_handlers/cpp_visitor.py'],  # Single file for testing
+    'paths': ['python/cocoindex_code_mcp_server/language_handlers/cpp_visitor.py'],  # Single file for testing
     'use_default_chunking': False,        # ✅ Use AST chunking
     'use_default_language_handler': False, # ✅ Use proper language handler
     'use_smart_embedding': True,          # Language-aware embeddings
@@ -123,18 +131,20 @@ _global_flow_config = {
 ## Test Cases
 
 ### ✅ Passing Tests
+
 - `tests/chunking/test_chunking_standalone.py` - 7/7 tests pass
-- `tests/chunking/test_ast_chunking_simple.py` - 3/3 tests pass  
+- `tests/chunking/test_ast_chunking_simple.py` - 3/3 tests pass
 - `tests/chunking/test_ast_chunking_integration.py::test_ast_chunking` - Now passes after Chunk class fix
 
 ### ❌ Still Failing
+
 - Hybrid search integration test - waiting on chunk content fix
 - CocoIndex evaluation showing empty chunks - under investigation
 
 ## Priority Actions
 
 1. **HIGH**: Investigate why CocoIndex evaluation still shows empty chunks despite metadata fix
-2. **HIGH**: Verify single-file configuration works correctly  
+2. **HIGH**: Verify single-file configuration works correctly
 3. **MEDIUM**: Run end-to-end test once chunks have content
 4. **LOW**: Document debugging process (✅ DONE)
 
@@ -154,7 +164,7 @@ _global_flow_config = {
 
 ## Resources
 
-- **Primary Codebase**: `/workspaces/rust/src/cocoindex_code_mcp_server/`
+- **Primary Codebase**: `/workspaces/rust/python/cocoindex_code_mcp_server/`
 - **Test Suite**: `/workspaces/rust/tests/`
 - **Debug Documentation**: `/workspaces/rust/docs/claude/Flow-Debug.md`
 - **Configuration**: `cocoindex_config.py` with global flow config

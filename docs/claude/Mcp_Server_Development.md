@@ -11,12 +11,14 @@ This document captures critical gotchas and lessons learned during the developme
 **Root Cause**: Including `null` fields in tool definitions confuses Claude Desktop's tool discovery mechanism.
 
 **Symptoms**:
+
 - MCP server shows as "connected" in Claude Desktop
 - Direct HTTP tests return tools correctly
 - `tools/list` method works via curl/supergateway
 - But Claude Desktop shows no available tools
 
 **Bad Implementation**:
+
 ```python
 # This includes null fields and breaks Claude Desktop
 return [types.Tool(name="my_tool", description="...", inputSchema={})]
@@ -24,6 +26,7 @@ return [types.Tool(name="my_tool", description="...", inputSchema={})]
 ```
 
 **Correct Implementation**:
+
 ```python
 # Use exclude_none=True to remove null fields
 tools = await handle_list_tools()
@@ -55,15 +58,17 @@ return {
 **Problem**: Wrong supergateway flags cause silent connection failures.
 
 **Transport Type Matching**:
+
 ```bash
 # WRONG: Using SSE flag with StreamableHTTP server
 pnpm dlx supergateway --sse "http://localhost:3033/mcp"
 
-# CORRECT: Using streamableHttp flag with StreamableHTTP server  
+# CORRECT: Using streamableHttp flag with StreamableHTTP server
 pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp"
 ```
 
 **Debugging**: Always test supergateway connection separately before blaming your MCP server:
+
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | \
 pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp" --logLevel debug
@@ -77,6 +82,7 @@ pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp" --logLevel de
 **Correct File**: `~/.config/Claude/claude_desktop_config.json`
 
 **Config Format**:
+
 ```json
 {
   "mcpServers": {
@@ -93,6 +99,7 @@ pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp" --logLevel de
 **Problem**: Improper async handling causes resource leaks or blocking operations.
 
 **Bad Pattern**:
+
 ```python
 @server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
@@ -102,8 +109,9 @@ async def handle_call_tool(name: str, arguments: dict):
 ```
 
 **Good Pattern**:
+
 ```python
-@server.call_tool() 
+@server.call_tool()
 async def handle_call_tool(name: str, arguments: dict):
     # DO: Proper async operations with connection pooling
     async with connection_pool.connection() as conn:
@@ -116,6 +124,7 @@ async def handle_call_tool(name: str, arguments: dict):
 **Problem**: Poor error handling creates confusing user experience.
 
 **Bad Error Response**:
+
 ```python
 # DON'T: Let exceptions bubble up as MCP protocol errors
 async def handle_call_tool(name: str, arguments: dict):
@@ -124,6 +133,7 @@ async def handle_call_tool(name: str, arguments: dict):
 ```
 
 **Good Error Response**:
+
 ```python
 # DO: Catch exceptions and return user-friendly error messages
 async def handle_call_tool(name: str, arguments: dict):
@@ -132,7 +142,7 @@ async def handle_call_tool(name: str, arguments: dict):
         return [types.TextContent(type="text", text=json.dumps(result, indent=2))]
     except Exception as e:
         return [types.TextContent(
-            type="text", 
+            type="text",
             text=f"Error executing tool '{name}': {str(e)}"
         )]
 ```
@@ -142,6 +152,7 @@ async def handle_call_tool(name: str, arguments: dict):
 **Problem**: Invalid JSON schemas cause tool calls to fail silently.
 
 **Common Mistakes**:
+
 ```python
 # DON'T: Invalid schema structure
 inputSchema = {
@@ -159,6 +170,7 @@ inputSchema = {
 ```
 
 **Correct Schema**:
+
 ```python
 inputSchema = {
     "type": "object",
@@ -177,6 +189,7 @@ inputSchema = {
 **Problem**: Improper connection handling causes resource exhaustion.
 
 **Anti-Pattern**:
+
 ```python
 # DON'T: Create new connections for each request
 async def search_database(query: str):
@@ -188,13 +201,16 @@ async def search_database(query: str):
 
 **Best Practice**:
 cocoindex```python
+
 # DO: Use connection pooling
+
 connection_pool = ConnectionPool(DATABASE_URL, min_size=1, max_size=10)
 
 async def search_database(query: str):
     async with connection_pool.connection() as conn:
         result = await conn.fetch("SELECT * FROM table WHERE text = $1", query)
         return result
+
 ```
 
 ### 9. **Development vs Production Configuration**
@@ -222,6 +238,7 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 **Problem**: Testing only happy paths misses integration issues.
 
 **What to Test**:
+
 1. **Protocol Compliance**: Test actual JSON-RPC message exchange
 2. **Tool Schema Validation**: Ensure schemas work with real MCP clients
 3. **Error Conditions**: Test database failures, invalid inputs, timeouts
@@ -229,14 +246,15 @@ LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 5. **Performance**: Test with realistic data sizes and concurrent requests
 
 **Testing Tools**:
+
 ```python
 # Create test utilities like these:
 def test_mcp_protocol_compliance():
     """Test actual MCP protocol messages"""
-    
+
 def test_claude_desktop_simulation():
     """Simulate Claude Desktop interaction"""
-    
+
 def test_tool_schema_validation():
     """Validate tool schemas work with MCP clients"""
 ```
@@ -246,6 +264,7 @@ def test_tool_schema_validation():
 ### 1. **MCP Protocol Debugging**
 
 **Test Server Directly**:
+
 ```bash
 curl -X POST http://localhost:3033/mcp \
   -H "Content-Type: application/json" \
@@ -253,6 +272,7 @@ curl -X POST http://localhost:3033/mcp \
 ```
 
 **Test Supergateway Connection**:
+
 ```bash
 echo '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}' | \
 timeout 5s pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp" --logLevel debug
@@ -261,6 +281,7 @@ timeout 5s pnpm dlx supergateway --streamableHttp "http://localhost:3033/mcp" --
 ### 2. **Tool Format Validation**
 
 Create a validation script to check your tool format:
+
 ```python
 def validate_tool_format(tool_response):
     """Check if tool response matches Claude Desktop expectations"""
@@ -270,7 +291,7 @@ def validate_tool_format(tool_response):
         null_fields = [k for k, v in tool.items() if v is None]
         if null_fields:
             print(f"WARNING: Tool '{tool['name']}' has null fields: {null_fields}")
-        
+
         # Validate required fields
         required = ["name", "description", "inputSchema"]
         missing = [f for f in required if f not in tool]
@@ -281,6 +302,7 @@ def validate_tool_format(tool_response):
 ### 3. **Connection Tracing**
 
 Add logging to trace the connection flow:
+
 ```python
 import logging
 logging.basicConfig(level=logging.DEBUG)
@@ -299,26 +321,31 @@ async def handle_list_tools():
 ## 📚 Best Practices
 
 ### 1. **Start Simple**
+
 - Begin with HTTP transport, not stdio
 - Test with curl before integrating with Claude Desktop
 - Start with one simple tool, then expand
 
 ### 2. **Follow the Specification**
+
 - Use minimal tool definitions without optional null fields
 - Include proper JSON schemas for all parameters
 - Handle errors gracefully with user-friendly messages
 
 ### 3. **Test Integration Early**
+
 - Test with supergateway before Claude Desktop integration
 - Create simulation scripts for debugging
 - Validate tool format matches expectations
 
 ### 4. **Monitor and Log**
+
 - Log all MCP protocol interactions
 - Monitor database connection usage
 - Track tool usage patterns
 
 ### 5. **Version Compatibility**
+
 - Pin MCP library versions in requirements
 - Test with multiple MCP client versions
 - Document compatibility requirements
@@ -359,7 +386,7 @@ async def handle_list_tools():
 
 ```json
 {
-  "jsonrpc": "2.0", 
+  "jsonrpc": "2.0",
   "id": 1,
   "error": {"code": 0, "message": "Unknown resource: invalid://uri"}
 }
@@ -376,12 +403,12 @@ async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
             raise ValueError(f"Unknown tool '{name}'")
         # ... normal processing
         return [types.TextContent(type="text", text=json.dumps(result))]
-    
+
     except Exception as e:
         # Return proper MCP error dict manually
         error_response = {
             "error": {
-                "type": "mcp_protocol_error", 
+                "type": "mcp_protocol_error",
                 "code": 32603,
                 "message": str(e)
             }
@@ -428,7 +455,7 @@ curl -X POST .../mcp/ -d '{"method": "resources/list"}'
 # Returns: {"resources": [{"uri": "cocoindex://search/config", ...}]}
 
 # But reading fails
-curl -X POST .../mcp/ -d '{"method": "resources/read", "params": {"uri": "cocoindex://search/config"}}'  
+curl -X POST .../mcp/ -d '{"method": "resources/read", "params": {"uri": "cocoindex://search/config"}}'
 # Returns: {"error": {"message": "Unknown resource: cocoindex://search/config"}}
 ```
 

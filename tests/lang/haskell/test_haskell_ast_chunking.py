@@ -7,11 +7,9 @@ Comprehensive tests for AST-based Haskell chunking functionality.
 from types import FunctionType
 from typing import cast
 
-import haskell_tree_sitter
+import cocoindex_code_mcp_server._haskell_tree_sitter as hts
 import pytest
-
 from cocoindex_code_mcp_server.lang.haskell.haskell_ast_chunker import (
-    HaskellChunkExecutor,
     HaskellChunkSpec,
     extract_haskell_ast_chunks,
     get_enhanced_haskell_separators,
@@ -33,7 +31,7 @@ factorial 0 = 1
 factorial n = n * factorial (n - 1)
 """
 
-        chunks = haskell_tree_sitter.get_haskell_ast_chunks(sample_code)
+        chunks = hts.get_haskell_ast_chunks(sample_code)
         assert len(chunks) > 0
 
         # Check that we get expected chunk types
@@ -51,7 +49,7 @@ factorial :: Integer -> Integer
 factorial n = n * factorial (n - 1)
 """
 
-        chunks = haskell_tree_sitter.get_haskell_ast_chunks_with_fallback(sample_code)
+        chunks = hts.get_haskell_ast_chunks_with_fallback(sample_code)
         assert len(chunks) > 0
 
         # Should use AST method for valid code
@@ -82,7 +80,7 @@ greet (Person name _) = "Hello, " ++ name
             assert "location" in chunk
             assert "start" in chunk
             assert "end" in chunk
-            
+
             # Test that location exists and is meaningful
             assert chunk.get("location") is not None
             assert len(chunk["text"]) > 0
@@ -123,7 +121,7 @@ instance Greetable Person where
         assert len(separators) > 10  # Should have base + enhanced separators
 
         # Check that it includes base separators
-        base_separators = haskell_tree_sitter.get_haskell_separators()
+        base_separators = hts.get_haskell_separators()
         for sep in base_separators:
             assert sep in separators
 
@@ -226,9 +224,9 @@ processAll = map process
         # Check that we get content from various parts (legacy format uses "text")
         contents = [chunk["text"] for chunk in chunks]
         combined_content = " ".join(contents)
-        
+
         assert "import" in combined_content
-        assert "ComplexType" in combined_content 
+        assert "ComplexType" in combined_content
         assert "Processable" in combined_content
         assert "processAll" in combined_content
 

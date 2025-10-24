@@ -6,10 +6,7 @@ Tests for Backend Factory functionality.
 
 import pytest
 
-from cocoindex_code_mcp_server.backends import (
-    BackendFactory,
-    VectorStoreBackend,
-)
+from cocoindex_code_mcp_server.backends import BackendFactory, VectorStoreBackend
 
 
 class MockBackend(VectorStoreBackend):
@@ -24,7 +21,8 @@ class MockBackend(VectorStoreBackend):
     def keyword_search(self, filters, top_k=10):
         return []
 
-    def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7, keyword_weight=0.3, embedding_model=None):
+    def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7,
+                      keyword_weight=0.3, embedding_model=None):
         return []
 
     def configure(self, **options):
@@ -128,11 +126,11 @@ class TestBackendFactory:
             # Restore original backends
             BackendFactory._backends = original_backends
 
-    def test_auto_registration_postgres(self, mocker): # mock_postgres_class: MagicMock):
+    def test_auto_registration_postgres(self, mocker):  # mock_postgres_class: MagicMock):
         """Test that PostgreSQL backend is auto-registered."""
         # Import should trigger auto-registration
         from cocoindex_code_mcp_server.backends import BackendFactory
-        
+
         mock_postgres_class = mocker.patch('cocoindex_code_mcp_server.backends.postgres_backend.PostgresBackend')
 
         # Verify postgres is available
@@ -177,7 +175,9 @@ class TestBackendFactory:
             def keyword_search(self, filters, top_k=10):
                 return []
 
-            def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7, keyword_weight=0.3, embedding_model=None):  # type: ignore[override]
+            # type: ignore[override]
+            def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7,
+                              keyword_weight=0.3, embedding_model=None):
                 return []
 
             def configure(self, **options):
@@ -223,7 +223,16 @@ class TestBackendFactory:
 
             def vector_search(self, query_vector, top_k=10, embedding_model=None): return []  # type: ignore[override]
             def keyword_search(self, filters, top_k=10): return []
-            def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7, keyword_weight=0.3, embedding_model=None): return []  # type: ignore[override]
+
+            def hybrid_search(
+                self,
+                query_vector,
+                filters,
+                top_k=10,
+                vector_weight=0.7,
+                keyword_weight=0.3,
+                embedding_model=None): return []  # type: ignore[override]
+
             def configure(self, **options): pass
             def get_table_info(self): return {}
             def close(self): pass
@@ -235,7 +244,16 @@ class TestBackendFactory:
 
             def vector_search(self, query_vector, top_k=10, embedding_model=None): return []  # type: ignore[override]
             def keyword_search(self, filters, top_k=10): return []
-            def hybrid_search(self, query_vector, filters, top_k=10, vector_weight=0.7, keyword_weight=0.3, embedding_model=None): return []  # type: ignore[override]
+
+            def hybrid_search(
+                self,
+                query_vector,
+                filters,
+                top_k=10,
+                vector_weight=0.7,
+                keyword_weight=0.3,
+                embedding_model=None): return []  # type: ignore[override]
+
             def configure(self, **options): pass
             def get_table_info(self): return {}
             def close(self): pass

@@ -9,7 +9,7 @@ The CocoIndex MCP Server now features a complete database abstraction layer that
 ## Key Features
 
 - **Unified Interface**: Single API for all vector database operations
-- **Schema Standardization**: Type-safe metadata structures across all backends  
+- **Schema Standardization**: Type-safe metadata structures across all backends
 - **Query Abstraction**: Database-agnostic query building and execution
 - **Backend Factory**: Easy backend switching via configuration
 - **MCP Protocol Compliance**: Full JSON Schema support for all endpoints
@@ -61,7 +61,7 @@ query = (create_query()
          .build())
 ```
 
-### 4. Field Mapping (`mappers.py`) 
+### 4. Field Mapping (`mappers.py`)
 
 Backend-specific field mapping handles differences in data storage formats:
 
@@ -76,6 +76,7 @@ Backend-specific field mapping handles differences in data storage formats:
 **Status**: ✅ Complete with abstraction integration
 
 Features:
+
 - pgvector extension for vector similarity search
 - JSONB metadata storage with GIN indexing
 - Full-text search integration with tsvector
@@ -83,11 +84,12 @@ Features:
 - Optimized hybrid search (vector + keyword)
 
 Usage:
+
 ```python
 from src.cocoindex_code_mcp_server.backends import create_backend
 
-backend = create_backend("postgres", 
-                        connection_pool=pool, 
+backend = create_backend("postgres",
+                        connection_pool=pool,
                         table_name="code_chunks")
 ```
 
@@ -96,15 +98,17 @@ backend = create_backend("postgres",
 **Status**: 🏗️ Skeleton implementation ready for development
 
 Prepared features:
+
 - Memory-mapped payload optimization
 - Advanced filtering with payload indexing
 - Collection management
 - High-performance HNSW vector search
 
 Usage:
+
 ```python
-backend = create_backend("qdrant", 
-                        host="localhost", 
+backend = create_backend("qdrant",
+                        host="localhost",
                         port=6333,
                         collection_name="code_chunks")
 ```
@@ -116,11 +120,12 @@ backend = create_backend("qdrant",
 Following MCP best practices, all endpoints use strict JSON Schema validation:
 
 **Tool Endpoints** (both input and output schemas):
+
 ```json
 {
   "name": "search_code",
   "inputSchema": {
-    "type": "object", 
+    "type": "object",
     "properties": {
       "query": {"type": "string"},
       "language": {"type": "string"},
@@ -141,6 +146,7 @@ Following MCP best practices, all endpoints use strict JSON Schema validation:
 ```
 
 **Resource Endpoints** (output schema only):
+
 ```json
 {
   "name": "code_metadata_schema",
@@ -158,6 +164,7 @@ Following MCP best practices, all endpoints use strict JSON Schema validation:
 ## Usage Examples
 
 ### Basic Search
+
 ```python
 from src.cocoindex_code_mcp_server.query_abstraction import simple_search
 
@@ -167,6 +174,7 @@ results = await executor.execute(query)
 ```
 
 ### Advanced Filtered Search
+
 ```python
 from src.cocoindex_code_mcp_server.query_abstraction import create_query
 
@@ -184,6 +192,7 @@ results = await executor.execute(query)
 ```
 
 ### Backend Switching
+
 ```python
 from src.cocoindex_code_mcp_server.backends import create_backend
 
@@ -195,7 +204,7 @@ qdrant_backend = create_backend("qdrant", host="localhost", port=6333)
 
 # Same query works with both backends
 executor_pg = QueryExecutor(pg_backend)
-executor_qdrant = QueryExecutor(qdrant_backend) 
+executor_qdrant = QueryExecutor(qdrant_backend)
 ```
 
 ## Extending to New Database Implementations
@@ -214,13 +223,13 @@ class MilvusBackend(VectorStoreBackend):
         self.port = port
         self.collection_name = collection_name
         # Initialize Milvus connection
-        
+
     def upsert(self, embeddings: List[List[float]], metadata: List[ChunkMetadata]) -> None:
         # Convert metadata using MilvusFieldMapper
         mapper = create_mapper("milvus")
         milvus_data = [mapper.to_backend_format(meta) for meta in metadata]
         # Implement Milvus-specific upsert logic
-        
+
     def query(self, embedding: List[float], top_k: int, filters: Optional[Dict] = None) -> List[SearchResult]:
         # Implement Milvus-specific query logic
         # Convert results back using mapper.from_backend_format()
@@ -239,14 +248,14 @@ class MilvusFieldMapper(FieldMapper):
         # Convert ChunkMetadata to Milvus payload format
         return {
             "filename": metadata["filename"],
-            "language": metadata["language"], 
+            "language": metadata["language"],
             "metadata_json": {
                 "functions": metadata["functions"],
                 "classes": metadata["classes"],
                 # ... other fields
             }
         }
-        
+
     def from_backend_format(self, data: Dict[str, Any]) -> ChunkMetadata:
         # Convert Milvus result back to ChunkMetadata
         return ChunkMetadata(
@@ -300,14 +309,14 @@ def test_milvus_upsert():
     backend = MilvusBackend(host="localhost", port=19530)
     metadata = [create_test_metadata()]
     embeddings = [[0.1, 0.2, 0.3]]
-    
+
     backend.upsert(embeddings, metadata)
     # Verify data was stored correctly
 
 def test_milvus_query():
     backend = MilvusBackend(host="localhost", port=19530)
     results = backend.query([0.1, 0.2, 0.3], top_k=5)
-    
+
     assert len(results) <= 5
     assert all(isinstance(r, SearchResult) for r in results)
 ```
@@ -319,6 +328,7 @@ def test_milvus_query():
 Different backends may require different query strategies:
 
 **PostgreSQL**: Leverage SQL capabilities
+
 ```python
 def optimize_for_postgres(self, query: ChunkQuery) -> str:
     sql = """
@@ -327,13 +337,14 @@ def optimize_for_postgres(self, query: ChunkQuery) -> str:
         FROM {table_name}
         WHERE language = %s
     )
-    SELECT * FROM vector_scores 
+    SELECT * FROM vector_scores
     ORDER BY distance ASC LIMIT %s
     """
     return sql
 ```
 
 **Qdrant**: Use advanced filtering
+
 ```python
 def optimize_for_qdrant(self, query: ChunkQuery) -> Dict:
     return {
@@ -366,49 +377,53 @@ def build_query(self, backend_info: BackendInfo, query: ChunkQuery):
 ### Required Classes
 
 1. **Backend Implementation**
-   - `CustomBackend(VectorStoreBackend)`: Main backend interface
-   - Location: `backends/custom_backend.py`
+   + `CustomBackend(VectorStoreBackend)`: Main backend interface
+   + Location: `backends/custom_backend.py`
 
-2. **Field Mapper**  
-   - `CustomFieldMapper(FieldMapper)`: Data format conversion
-   - Location: `mappers.py` (add to existing file)
+2. **Field Mapper**
+   + `CustomFieldMapper(FieldMapper)`: Data format conversion
+   + Location: `mappers.py` (add to existing file)
 
 3. **Query Optimizer** (optional)
-   - `CustomQueryOptimizer`: Backend-specific optimizations
-   - Location: `query_abstraction.py` (extend existing optimizer)
+   + `CustomQueryOptimizer`: Backend-specific optimizations
+   + Location: `query_abstraction.py` (extend existing optimizer)
 
 ### Optional Classes
 
 4. **Connection Manager**
-   - `CustomConnectionManager`: Connection pooling/management
-   - Location: `backends/custom_backend.py`
+   + `CustomConnectionManager`: Connection pooling/management
+   + Location: `backends/custom_backend.py`
 
 5. **Schema Manager**
-   - `CustomSchemaManager`: Collection/table schema management
-   - Location: `backends/custom_backend.py`
+   + `CustomSchemaManager`: Collection/table schema management
+   + Location: `backends/custom_backend.py`
 
 6. **Migration Helper**
-   - `CustomMigrationHelper`: Data migration utilities
-   - Location: `migrations/custom_migration.py`
+   + `CustomMigrationHelper`: Data migration utilities
+   + Location: `migrations/custom_migration.py`
 
 ## Best Practices
 
 ### Type Safety
+
 - Always use proper type hints and validate with mypy
 - Leverage TypedDict for metadata structures
 - Use Pydantic models for complex schemas
 
 ### Error Handling
+
 - Implement graceful fallbacks for unsupported features
 - Provide clear error messages with backend context
 - Log performance metrics for query optimization
 
 ### Testing
+
 - Write comprehensive unit tests for each backend
 - Include integration tests with real data
 - Test migration paths between backends
 
 ### MCP Compliance
+
 - Define JSON schemas for all tool inputs and outputs
 - Use resource endpoints for metadata schemas
 - Follow MCP protocol naming conventions
@@ -418,18 +433,21 @@ def build_query(self, backend_info: BackendInfo, query: ChunkQuery):
 ### Backend Selection Guidelines
 
 **PostgreSQL + pgvector**: Best for
+
 - Small to medium datasets (<1M vectors)
 - Rich metadata querying with SQL
 - ACID compliance requirements
 - Full-text search integration
 
-**Qdrant**: Best for  
+**Qdrant**: Best for
+
 - Large datasets (>10M vectors)
 - High-performance vector similarity search
 - Memory-constrained environments
 - Advanced filtering requirements
 
 **Extension targets**:
+
 - **Milvus**: Enterprise features, GPU acceleration
 - **Weaviate**: GraphQL API, semantic search
 - **Pinecone**: Managed service, auto-scaling
@@ -460,12 +478,14 @@ migrate_backend(
 ## Future Roadmap
 
 ### Phase 3 Extensions (Optional)
+
 - Advanced chunking strategy selection
-- Multi-backend hybrid queries  
+- Multi-backend hybrid queries
 - Real-time index updates
 - Performance monitoring dashboard
 
 ### Additional Backend Targets
+
 - **Chroma**: Open-source embedding database
 - **Vespa**: Large-scale search and recommendation
 - **Azure Cognitive Search**: Cloud-native search
@@ -483,7 +503,7 @@ The CocoIndex MCP Server uses a sophisticated field mapping system that automati
 
 #### Step 1: Update Field Mappings
 
-Add your new field to `CONST_FIELD_MAPPINGS` in `src/cocoindex_code_mcp_server/mappers.py`:
+Add your new field to `CONST_FIELD_MAPPINGS` in `python/cocoindex_code_mcp_server/mappers.py`:
 
 ```python
 CONST_FIELD_MAPPINGS = {
@@ -494,7 +514,7 @@ CONST_FIELD_MAPPINGS = {
 
 #### Step 2: Add Extraction Function (if from metadata)
 
-If your field comes from `metadata_json`, create an extraction function in `src/cocoindex_code_mcp_server/cocoindex_config.py`:
+If your field comes from `metadata_json`, create an extraction function in `python/cocoindex_code_mcp_server/cocoindex_config.py`:
 
 ```python
 @cocoindex.op.function()
@@ -540,14 +560,14 @@ The backend only selects fields that actually exist in the database:
 def _build_select_clause(self, include_distance: bool = False) -> Tuple[str, List[str]]:
     """Build SELECT clause dynamically using only available DB columns."""
     available_columns = self._get_available_columns()
-    
+
     # Filter CONST_SELECTABLE_FIELDS to only those that exist
     for field in CONST_SELECTABLE_FIELDS:
         if field in available_columns:
             fields.append(field)
         else:
             missing_fields.append(field)
-    
+
     # Log warnings for missing expected fields
     if new_missing_fields:
         logger.warning(f"Expected columns missing: {sorted(new_missing_fields)}")
@@ -579,7 +599,7 @@ def extract_complexity_rating_field(metadata_json: str) -> int:
 chunk["complexity_rating"] = chunk["extracted_metadata"].transform(extract_complexity_rating_field)
 
 # Step 4: Add PostgreSQL column (migration)
-ALTER TABLE codeembedding__code_embeddings 
+ALTER TABLE codeembedding__code_embeddings
 ADD COLUMN complexity_rating INTEGER DEFAULT 0;
 ```
 
@@ -589,18 +609,18 @@ For PostgreSQL, you'll need to add the actual column to your database schema:
 
 ```sql
 -- Add the new column with appropriate type and default
-ALTER TABLE codeembedding__code_embeddings 
+ALTER TABLE codeembedding__code_embeddings
 ADD COLUMN your_new_field VARCHAR(255) DEFAULT '';
 
 -- Add index if needed for query performance
-CREATE INDEX IF NOT EXISTS idx_your_new_field 
+CREATE INDEX IF NOT EXISTS idx_your_new_field
 ON codeembedding__code_embeddings(your_new_field);
 ```
 
 #### Benefits of This Approach
 
 1. **Graceful Degradation**: Application continues working even when database schema is behind
-2. **Warning System**: Clear logs about missing expected columns  
+2. **Warning System**: Clear logs about missing expected columns
 3. **Automatic Integration**: New columns are automatically detected and used once added
 4. **Caching**: Column introspection is cached (60s TTL) for performance
 5. **Case Handling**: Automatic handling of PostgreSQL's lowercase table name conventions

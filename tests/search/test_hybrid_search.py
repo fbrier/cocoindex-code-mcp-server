@@ -24,7 +24,6 @@ from ..common import (
     run_cocoindex_hybrid_search_tests,
 )
 from ..search_config import SearchTestConfig
-from ..db_comparison import compare_test_with_database
 
 
 @pytest.mark.skipif(not COCOINDEX_AVAILABLE, reason="CocoIndex infrastructure not available")
@@ -54,14 +53,14 @@ class TestMCPDirect:
             # Use default settings which match your requirements:
             # paths=["/workspaces/rust"], no_live=True, default_embedding=True, log_level="DEBUG"
         )
-        
+
         # Log configuration for debugging
         logger = logging.getLogger(__name__)
         config.log_configuration(logger)
 
         # Create and initialize infrastructure using configuration with hybrid test type
         infrastructure_kwargs = config.to_infrastructure_kwargs()
-        infrastructure_kwargs['test_type'] = 'hybrid'  # Use separate hybrid test table
+        infrastructure_kwargs["test_type"] = "hybrid"  # Use separate hybrid test table
         async with CocoIndexTestInfrastructure(**infrastructure_kwargs) as infrastructure:
 
             # CocoIndex indexing completes synchronously during infrastructure setup
@@ -73,9 +72,7 @@ class TestMCPDirect:
 
             # Run hybrid search tests using direct infrastructure
             failed_tests = await run_cocoindex_hybrid_search_tests(
-                test_cases=test_data["tests"],
-                infrastructure=infrastructure,
-                run_timestamp=run_timestamp
+                test_cases=test_data["tests"], infrastructure=infrastructure, run_timestamp=run_timestamp
             )
 
             # Report results using common helper
@@ -84,7 +81,7 @@ class TestMCPDirect:
                 logging.info(error_msg)
                 pytest.fail(error_msg)
             else:
-                logging.info(f"✅ All {len(test_data['tests'])} hybrid search validation tests passed!")
+                logging.info("✅ All %s hybrid search validation tests passed!", len(test_data["tests"]))
 
 
 if __name__ == "__main__":

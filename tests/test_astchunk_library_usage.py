@@ -52,10 +52,7 @@ class TestASTChunkLibraryUsage:
     def test_astchunk_library_direct_usage(self):
         """Test direct usage of ASTChunk library through ASTChunkExecutor."""
         # Import the executor directly
-        from cocoindex_code_mcp_server.ast_chunking import (
-            ASTChunkExecutor,
-            ASTChunkSpec,
-        )
+        from cocoindex_code_mcp_server.ast_chunking import ASTChunkSpec
 
         # Test Python code that should use ASTChunk library
         python_code = '''
@@ -79,7 +76,7 @@ class TestClass:
         # Note: ASTChunkExecutor is designed to work within CocoIndex framework
         # Direct instantiation may not work as expected due to @op.executor_class() decorator
         print("✅ ASTChunkSpec creation test passed (executor instantiation skipped due to CocoIndex framework requirements)")
-        
+
         # Mock result for test completion
         result: list[Any] = []  # Empty result since we can't instantiate the executor directly
 

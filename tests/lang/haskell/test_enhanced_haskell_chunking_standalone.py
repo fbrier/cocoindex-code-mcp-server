@@ -5,10 +5,17 @@ Standalone tests for enhanced Haskell chunking functionality.
 Tests the new HaskellChunkConfig and EnhancedHaskellChunker classes without CocoIndex imports.
 """
 
-from typing import Any, Dict, List
 import sys
+from typing import Any, Dict, List
 
+import cocoindex_code_mcp_server._haskell_tree_sitter as hts
 import pytest
+from cocoindex_code_mcp_server.lang.haskell.haskell_ast_chunker import (
+    HaskellChunkConfig,
+    create_enhanced_regex_fallback_chunks,
+    get_enhanced_haskell_separators,
+)
+
 
 # Set up mock early to avoid circular import - this runs at module load time
 @pytest.fixture(scope="session", autouse=True)
@@ -18,12 +25,15 @@ def setup_cocoindex_mock():
     class SimpleMock:
         def __init__(self):
             self._attrs = {}
+
         def __call__(self, *args, **kwargs):
             return lambda f: f
+
         def __getattr__(self, name):
             if name not in self._attrs:
                 self._attrs[name] = SimpleMock()
             return self._attrs[name]
+
         def __setattr__(self, name, value):
             if name == '_attrs':
                 object.__setattr__(self, name, value)
@@ -43,14 +53,8 @@ def setup_cocoindex_mock():
     if 'cocoindex' in sys.modules:
         del sys.modules['cocoindex']
 
-# Import modules after cocoindex mock is available
-import haskell_tree_sitter
 
-from cocoindex_code_mcp_server.lang.haskell.haskell_ast_chunker import (
-    HaskellChunkConfig,
-    create_enhanced_regex_fallback_chunks,
-    get_enhanced_haskell_separators,
-)
+# Import modules after cocoindex mock is available
 
 
 class TestHaskellChunkConfig:
@@ -89,7 +93,7 @@ class TestEnhancedHaskellSeparators:
 
     def test_separators_include_base(self):
         """Test that enhanced separators include base separators."""
-        base_separators = haskell_tree_sitter.get_haskell_separators()
+        base_separators = hts.get_haskell_separators()
         enhanced_separators = get_enhanced_haskell_separators()
 
         # All base separators should be included
@@ -114,7 +118,7 @@ class TestEnhancedHaskellSeparators:
 
     def test_separators_count(self):
         """Test that enhanced separators are more than base separators."""
-        base_separators = haskell_tree_sitter.get_haskell_separators()
+        base_separators = hts.get_haskell_separators()
         enhanced_separators = get_enhanced_haskell_separators()
 
         assert len(enhanced_separators) > len(base_separators)

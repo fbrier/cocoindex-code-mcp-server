@@ -5,13 +5,13 @@ from types import FunctionType
 from typing import cast
 
 import pytest
-
-import cocoindex
 from cocoindex_code_mcp_server.cocoindex_config import (
     CUSTOM_LANGUAGES,
     extract_language,
     get_chunking_params,
 )
+
+import cocoindex
 
 
 class TestCocoIndexIntegration:
@@ -82,5 +82,3 @@ class TestCocoIndexIntegration:
         assert len(haskell_code) > 0
         assert "module HaskellExample1 where" in haskell_code
         assert "fibonacci ::" in haskell_code
-
-
