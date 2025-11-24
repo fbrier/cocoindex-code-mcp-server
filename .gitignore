@@ -9,6 +9,7 @@ __pycache__/
 .dmypy.json
 /artifacts/
 /.env
+/.idea/
 
 # Python (and python cache)
 *.pyc

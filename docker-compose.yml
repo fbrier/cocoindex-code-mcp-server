@@ -1,0 +1,33 @@
+# docker-compose.yml
+version: "3.9"
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: cocoindex-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cocoindex
+      POSTGRES_PASSWORD: cocoindex
+      POSTGRES_DB: cocoindex
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  cocoindex-mcp:
+    build: .
+    container_name: cocoindex-mcp-server
+    restart: unless-stopped
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - repos:/repos   # optional: mount your codebases here if you want file-path access
+
+volumes:
+  postgres_data:
+  repos:
