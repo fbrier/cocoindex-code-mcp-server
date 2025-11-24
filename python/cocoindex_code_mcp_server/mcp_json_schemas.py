@@ -201,3 +201,63 @@ EMPTY_JSON_SCHEMA = {
     "properties": {},
     "required": [],
 }
+
+# New schemas for repository cloning and code fragment ingestion
+CLONE_AND_INDEX_REPO_INPUT_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "git_url": {
+            "type": "string",
+            "description": "Git repository URL (https:// or git@). Supports both public and private repositories.",
+        },
+        "branch": {
+            "type": "string",
+            "description": "Branch to clone (default: main or master). If not specified, will use repository default branch.",
+        },
+        "update_existing": {
+            "type": "boolean",
+            "description": "If true, performs git pull on existing repository instead of failing. Default: true",
+            "default": True,
+        },
+        "subdirectory": {
+            "type": "string",
+            "description": "Optional subdirectory within the repo to index (indexes entire repo if not specified)",
+        },
+    },
+    "required": ["git_url"],
+}
+
+INGEST_CODE_FRAGMENT_INPUT_SCHEMA = {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "properties": {
+        "source_url": {
+            "type": "string",
+            "description": "URL of the webpage where the code fragment was found",
+        },
+        "code": {"type": "string", "description": "The code fragment content"},
+        "language": {
+            "type": "string",
+            "description": "Programming language (e.g., 'csharp', 'python', 'cpp'). Auto-detected if not provided.",
+        },
+        "function_name": {
+            "type": "string",
+            "description": "Name of the function/method in the code fragment (used in filename)",
+        },
+        "context_tags": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Contextual tags (e.g., ['dependency-injection', 'logging', 'async'])",
+        },
+        "additional_metadata": {
+            "type": "object",
+            "description": "Additional metadata to store with the fragment (e.g., {'framework': 'ASP.NET', 'version': '8.0'})",
+        },
+        "extraction_date": {
+            "type": "string",
+            "description": "ISO 8601 date when fragment was extracted. Auto-set if not provided.",
+        },
+    },
+    "required": ["source_url", "code"],
+}

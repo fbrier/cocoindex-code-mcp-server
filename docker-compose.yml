@@ -1,4 +1,4 @@
-# docker-compose.yml
+# docker-compose.yml for cocoindex-code-mcp-server with repository management
 version: "3.9"
 
 services:
@@ -14,20 +14,66 @@ services:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U cocoindex"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   cocoindex-mcp:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: cocoindex-mcp-server
     restart: unless-stopped
     depends_on:
-      - postgres
-    env_file:
-      - .env
-    ports:
-      - "8000:8000"
-    volumes:
-      - repos:/repos   # optional: mount your codebases here if you want file-path access
+      postgres:
+        condition: service_healthy
+    environment:
+      # Database connection (use 'postgres' as hostname for docker network)
+      - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5432/cocoindex
 
+      # Directory paths in container
+      - REPOS_DIR=/repos
+      - CODE_FRAGMENTS_DIR=/code_fragments
+
+      # SSH key for private git repositories (optional)
+      # Mount your SSH key and set this path
+      - GIT_SSH_KEY=/ssh/id_rsa
+
+      # Optional: Configure git user for commits
+      # - GIT_AUTHOR_NAME=Your Name
+      # - GIT_AUTHOR_EMAIL=your.email@example.com
+    ports:
+      - "3033:3033"  # MCP server HTTP port
+    volumes:
+      # Named volumes for persistent storage
+      - repos:/repos                          # Git repositories
+      - code_fragments:/code_fragments        # Code fragments from web
+
+      # Mount SSH key for private repositories (optional)
+      # Uncomment and adjust path to your SSH key
+      # - ~/.ssh/id_rsa:/ssh/id_rsa:ro
+      # Or use a specific key:
+      # - ./git_deploy_key:/ssh/id_rsa:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3033/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+# Named volumes for data persistence
+# These persist even when containers are stopped/removed
 volumes:
   postgres_data:
+    driver: local
   repos:
+    driver: local
+  code_fragments:
+    driver: local
+
+# Optional: Networks configuration
+networks:
+  default:
+    name: cocoindex-network

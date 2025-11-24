@@ -53,6 +53,7 @@ from starlette.types import Receive, Scope, Send
 import cocoindex
 
 from . import mcp_json_schemas
+from .repository_manager import RepositoryManager
 
 # Backend abstraction imports
 from .backends import BackendFactory, VectorStoreBackend
@@ -205,6 +206,16 @@ def get_mcp_tools() -> list[types.Tool]:
             name="help-keyword_syntax",
             description="Get comprehensive help and examples for keyword query syntax",
             inputSchema=mcp_json_schemas.EMPTY_JSON_SCHEMA,
+        ),
+        types.Tool(
+            name="clone-and-index-repo",
+            description="Clone a git repository and index it for code search. Supports public and private repositories (via SSH key).",
+            inputSchema=mcp_json_schemas.CLONE_AND_INDEX_REPO_INPUT_SCHEMA,
+        ),
+        types.Tool(
+            name="ingest-code-fragment",
+            description="Store and index a code fragment from a webpage. Automatically detects language and creates metadata.",
+            inputSchema=mcp_json_schemas.INGEST_CODE_FRAGMENT_INPUT_SCHEMA,
         ),
     ]
 
@@ -431,6 +442,12 @@ def main(
     if chunk_factor_percent != 100:
         logger.info("📏 Chunk size scaling: %s%%", chunk_factor_percent)
 
+    # Initialize repository manager for git cloning and code fragment ingestion
+    repos_dir = os.getenv("REPOS_DIR", "/repos")
+    fragments_dir = os.getenv("CODE_FRAGMENTS_DIR", "/code_fragments")
+    repo_manager = RepositoryManager(repos_dir=repos_dir, fragments_dir=fragments_dir)
+    logger.info("📦 Repository manager initialized: repos=%s, fragments=%s", repos_dir, fragments_dir)
+
     # Create the MCP server
     app: Server = Server("cocoindex-rag")
 
@@ -465,6 +482,10 @@ def main(
                 result = await get_embeddings_tool(arguments)
             elif name == "help-keyword_syntax":
                 result = await get_keyword_syntax_help_tool(arguments)
+            elif name == "clone-and-index-repo":
+                result = await clone_and_index_repo_tool(arguments, repo_manager)
+            elif name == "ingest-code-fragment":
+                result = await ingest_code_fragment_tool(arguments, repo_manager)
             else:
                 raise ValueError(f"Unknown tool '{name}'")
 
@@ -758,6 +779,61 @@ def main(
                 ],
             }
         }
+
+    async def clone_and_index_repo_tool(arguments: dict, repo_manager: RepositoryManager) -> dict:
+        """Clone a git repository and index it for code search."""
+        git_url = arguments.get("git_url")
+        branch = arguments.get("branch")
+        update_existing = arguments.get("update_existing", True)
+        subdirectory = arguments.get("subdirectory")
+
+        logger.info("🔄 Cloning repository: %s", git_url)
+
+        # Clone the repository
+        result = repo_manager.clone_repository(
+            git_url=git_url,
+            branch=branch,
+            update_existing=update_existing,
+            subdirectory=subdirectory,
+        )
+
+        if result["status"] in ["success", "updated"]:
+            # Trigger re-indexing of the repository
+            # The repository path is already being watched if it's in the scanned paths
+            # Or will be indexed on next scan
+            logger.info("✅ Repository cloned/updated: %s", result["repo_path"])
+
+        return result
+
+    async def ingest_code_fragment_tool(arguments: dict, repo_manager: RepositoryManager) -> dict:
+        """Ingest a code fragment from a webpage and index it."""
+        source_url = arguments.get("source_url")
+        code = arguments.get("code")
+        language = arguments.get("language")
+        function_name = arguments.get("function_name")
+        context_tags = arguments.get("context_tags", [])
+        additional_metadata = arguments.get("additional_metadata", {})
+        extraction_date = arguments.get("extraction_date")
+
+        logger.info("📝 Ingesting code fragment from: %s", source_url)
+
+        # Store the code fragment
+        result = repo_manager.ingest_code_fragment(
+            source_url=source_url,
+            code=code,
+            language=language,
+            function_name=function_name,
+            context_tags=context_tags,
+            additional_metadata=additional_metadata,
+            extraction_date=extraction_date,
+        )
+
+        if result["status"] == "success":
+            # The code fragment will be indexed on next scan
+            # Or immediately if live updates are enabled
+            logger.info("✅ Code fragment saved: %s", result["file_path"])
+
+        return result
 
     # Resource implementation functions
     async def get_search_stats() -> str:
