@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "5532:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U cocoindex"]
       interval: 10s
@@ -21,9 +21,7 @@ services:
       retries: 5
 
   cocoindex-mcp:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/fbrier/cocoindex-code-mcp-server:main-2a2ce74
     container_name: cocoindex-mcp-server
     restart: unless-stopped
     depends_on:
@@ -31,7 +29,7 @@ services:
         condition: service_healthy
     environment:
       # Database connection (use 'postgres' as hostname for docker network)
-      - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5432/cocoindex
+      - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5532/cocoindex
 
       # Directory paths in container
       - REPOS_DIR=/repos
@@ -42,8 +40,9 @@ services:
       - GIT_SSH_KEY=/ssh/id_rsa
 
       # Optional: Configure git user for commits
-      # - GIT_AUTHOR_NAME=Your Name
-      # - GIT_AUTHOR_EMAIL=your.email@example.com
+      - GIT_AUTHOR_NAME=${GIT_AUTHOR_NAME}
+      - GIT_AUTHOR_EMAIL=${GIT_AUTHOR_EMAIL}
+      - SSH_KEY_FILE=${SSH_KEY_FILE}  # Path to SSH key file on host
     ports:
       - "3033:3033"  # MCP server HTTP port
     volumes:
@@ -53,7 +52,7 @@ services:
 
       # Mount SSH key for private repositories (optional)
       # Uncomment and adjust path to your SSH key
-      # - ~/.ssh/id_rsa:/ssh/id_rsa:ro
+      - ${SSH_KEY_FILE}:/ssh/id_rsa:ro
       # Or use a specific key:
       # - ./git_deploy_key:/ssh/id_rsa:ro
     healthcheck:
