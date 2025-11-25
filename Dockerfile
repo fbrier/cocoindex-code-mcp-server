@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Create app user
 RUN useradd -m -u 1000 app
 
-# Create directories for repos and code fragments with proper permissions
-RUN mkdir -p /repos /code_fragments /ssh && \
-    chown -R app:app /repos /code_fragments /ssh
+# Create directories for repos, code fragments, logs, and ssh with proper permissions
+RUN mkdir -p /repos /code_fragments /ssh /logs && \
+    chown -R app:app /repos /code_fragments /ssh /logs
 
 WORKDIR /app
 
@@ -47,7 +47,8 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Environment variables (can be overridden)
 ENV REPOS_DIR=/repos \
     CODE_FRAGMENTS_DIR=/code_fragments \
-    GIT_SSH_KEY=/ssh/id_rsa
+    GIT_SSH_KEY=/ssh/id_rsa \
+    WORKSPACE=/logs
 
 # Run the MCP server
 # Scans both /repos and /code_fragments directories

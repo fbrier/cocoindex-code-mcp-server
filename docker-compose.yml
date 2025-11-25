@@ -34,6 +34,7 @@ services:
       # Directory paths in container
       - REPOS_DIR=/repos
       - CODE_FRAGMENTS_DIR=/code_fragments
+      - WORKSPACE=/logs
 
       # SSH key for private git repositories (optional)
       # Mount your SSH key and set this path
@@ -49,6 +50,7 @@ services:
       # Named volumes for persistent storage
       - repos:/repos                          # Git repositories
       - code_fragments:/code_fragments        # Code fragments from web
+      - logs:/logs                            # Application logs
 
       # Mount SSH key for private repositories (optional)
       # Uncomment and adjust path to your SSH key
@@ -70,6 +72,8 @@ volumes:
   repos:
     driver: local
   code_fragments:
+    driver: local
+  logs:
     driver: local
 
 # Optional: Networks configuration
