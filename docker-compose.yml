@@ -21,7 +21,7 @@ services:
       retries: 5
 
   cocoindex-mcp:
-    image: ghcr.io/fbrier/cocoindex-code-mcp-server:main-2a2ce74
+    image: ghcr.io/fbrier/cocoindex-code-mcp-server:latest
     container_name: cocoindex-mcp-server
     restart: unless-stopped
     depends_on:
@@ -29,7 +29,7 @@ services:
         condition: service_healthy
     environment:
       # Database connection (use 'postgres' as hostname for docker network)
-      - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5532/cocoindex
+      - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5432/cocoindex
 
       # Directory paths in container
       - REPOS_DIR=/repos
