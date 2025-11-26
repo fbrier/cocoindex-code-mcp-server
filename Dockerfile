@@ -11,6 +11,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Rust (needed for maturin to build Rust extensions)
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+ENV PATH="/root/.cargo/bin:${PATH}"
+
 # Create app user
 RUN useradd -m -u 1000 app
 
@@ -29,8 +33,8 @@ COPY --chown=app:app . /app
 # Switch to app user for installation
 USER app
 
-# Add user's local bin to PATH
-ENV PATH="/home/app/.local/bin:${PATH}"
+# Add user's local bin and Rust to PATH
+ENV PATH="/home/app/.local/bin:/root/.cargo/bin:${PATH}"
 
 # Install the package
 # Build from source (not PyPI) to include our fixes
