@@ -44,10 +44,6 @@ RUN pip install --user --no-cache-dir --upgrade pip && \
 # Expose MCP server port
 EXPOSE 3033
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3033/health || exit 1
-
 # Environment variables (can be overridden)
 ENV REPOS_DIR=/repos \
     CODE_FRAGMENTS_DIR=/code_fragments \
