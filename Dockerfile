@@ -32,20 +32,17 @@ USER app
 # Add user's local bin to PATH
 ENV PATH="/home/app/.local/bin:${PATH}"
 
-# Install the package
-# Try PyPI first, fall back to building from source if needed
+# Add Python module to PYTHONPATH so it can be imported without installation
+ENV PYTHONPATH="/app/python:${PYTHONPATH}"
+
+# Install Python dependencies into virtual environment
+# All required languages (C#, C++, C, Python, JS, TS, Java) use tree-sitter Python packages
 RUN pip install --user --no-cache-dir --upgrade pip && \
-    (pip install --user --no-cache-dir cocoindex-code-mcp-server || \
-     (pip install --user --no-cache-dir uv && \
-      uv sync --all-extras && \
-      uv run maturin develop))
+    pip install --user --no-cache-dir uv && \
+    uv sync --all-extras
 
 # Expose MCP server port
 EXPOSE 3033
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3033/health || exit 1
 
 # Environment variables (can be overridden)
 ENV REPOS_DIR=/repos \
@@ -53,9 +50,9 @@ ENV REPOS_DIR=/repos \
     GIT_SSH_KEY=/ssh/id_rsa \
     WORKSPACE=/logs
 
-# Run the MCP server
+# Run the MCP server using uv run (activates virtual environment)
 # Scans both /repos and /code_fragments directories
-CMD ["python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
+CMD ["uv", "run", "python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
      "--port", "3033", \
      "--rescan", \
      "/repos", \
