@@ -1052,6 +1052,15 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                     with pool.connection() as conn:
                         register_vector(conn)
 
+                        # Auto-install pgvector extension if not already installed
+                        try:
+                            with conn.cursor() as cur:
+                                cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
+                                logger.info("✅ pgvector extension installed/verified")
+                        except Exception as e:
+                            logger.warning("⚠️  Could not install pgvector extension: %s", e)
+                            logger.warning("   Ensure your PostgreSQL user has CREATE EXTENSION privileges")
+
                     backend = BackendFactory.create_backend(backend_type, pool=pool, table_name=table_name)
                 else:
                     # For other backends that might expect connection_string

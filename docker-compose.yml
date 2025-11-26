@@ -12,7 +12,6 @@ services:
       POSTGRES_DB: cocoindex
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql:ro
     ports:
       - "5532:5432"
     healthcheck:
