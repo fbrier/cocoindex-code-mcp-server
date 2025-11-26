@@ -18,6 +18,9 @@ RUN useradd -m -u 1000 app
 RUN mkdir -p /repos /code_fragments /ssh /logs && \
     chown -R app:app /repos /code_fragments /ssh /logs
 
+# Copy init SQL script for pgvector extension
+COPY --chown=app:app init-pgvector.sql /app/init-pgvector.sql
+
 WORKDIR /app
 
 # Copy application code

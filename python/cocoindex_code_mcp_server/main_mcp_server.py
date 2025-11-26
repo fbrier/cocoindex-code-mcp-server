@@ -36,6 +36,7 @@ import signal
 import sys
 import threading
 from collections.abc import AsyncIterator
+from pathlib import Path
 from typing import List, Optional
 
 import click
@@ -1048,9 +1049,24 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                     from psycopg_pool import ConnectionPool
 
                     pool = ConnectionPool(database_url)
-                    # Register pgvector extensions
+                    # Auto-install pgvector extension from SQL file BEFORE registering
                     with pool.connection() as conn:
+                        # Auto-install pgvector extension from SQL file
+                        try:
+                            sql_file = Path("/app/init-pgvector.sql")
+                            if sql_file.exists():
+                                sql = sql_file.read_text()
+                                with conn.cursor() as cur:
+                                    cur.execute(sql)
+                                    logger.info("✅ pgvector extension installed from init-pgvector.sql")
+                            else:
+                                logger.warning("⚠️  init-pgvector.sql not found at /app/init-pgvector.sql")
+                        except Exception as e:
+                            logger.warning("⚠️  Could not install pgvector extension: %s", e)
+                            logger.warning("   Ensure your PostgreSQL user has CREATE EXTENSION privileges")
+                        # Now register pgvector extensions after installation
                         register_vector(conn)
+
 
                     backend = BackendFactory.create_backend(backend_type, pool=pool, table_name=table_name)
                 else:
