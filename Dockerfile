@@ -32,11 +32,12 @@ USER app
 # Add user's local bin to PATH
 ENV PATH="/home/app/.local/bin:${PATH}"
 
-# Install Python dependencies only (no Rust/maturin build)
-# All required languages (C#, C++, C, Python, JS, TS) use tree-sitter Python packages
+# Install Python dependencies and the package itself
+# All required languages (C#, C++, C, Python, JS, TS, Java) use tree-sitter Python packages
 RUN pip install --user --no-cache-dir --upgrade pip && \
     pip install --user --no-cache-dir uv && \
-    uv sync --all-extras
+    uv sync --all-extras && \
+    uv pip install -e .
 
 # Expose MCP server port
 EXPOSE 3033
