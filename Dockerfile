@@ -33,12 +33,11 @@ USER app
 ENV PATH="/home/app/.local/bin:${PATH}"
 
 # Install the package
-# Try PyPI first, fall back to building from source if needed
+# Build from source (not PyPI) to include our fixes
 RUN pip install --user --no-cache-dir --upgrade pip && \
-    (pip install --user --no-cache-dir cocoindex-code-mcp-server || \
-     (pip install --user --no-cache-dir uv && \
-      uv sync --all-extras && \
-      uv run maturin develop))
+    pip install --user --no-cache-dir uv && \
+    uv sync --all-extras && \
+    uv run maturin develop
 
 # Expose MCP server port
 EXPOSE 3033
