@@ -1049,10 +1049,8 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                     from psycopg_pool import ConnectionPool
 
                     pool = ConnectionPool(database_url)
-                    # Register pgvector extensions
+                    # Auto-install pgvector extension from SQL file BEFORE registering
                     with pool.connection() as conn:
-                        register_vector(conn)
-
                         # Auto-install pgvector extension from SQL file
                         try:
                             sql_file = Path("/app/init-pgvector.sql")
@@ -1066,6 +1064,9 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                         except Exception as e:
                             logger.warning("⚠️  Could not install pgvector extension: %s", e)
                             logger.warning("   Ensure your PostgreSQL user has CREATE EXTENSION privileges")
+                        # Now register pgvector extensions after installation
+                        register_vector(conn)
+
 
                     backend = BackendFactory.create_backend(backend_type, pool=pool, table_name=table_name)
                 else:
