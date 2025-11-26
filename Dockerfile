@@ -35,7 +35,7 @@ ENV PATH="/home/app/.local/bin:${PATH}"
 # Add Python module to PYTHONPATH so it can be imported without installation
 ENV PYTHONPATH="/app/python:${PYTHONPATH}"
 
-# Install Python dependencies only (package itself is in PYTHONPATH)
+# Install Python dependencies into virtual environment
 # All required languages (C#, C++, C, Python, JS, TS, Java) use tree-sitter Python packages
 RUN pip install --user --no-cache-dir --upgrade pip && \
     pip install --user --no-cache-dir uv && \
@@ -54,9 +54,9 @@ ENV REPOS_DIR=/repos \
     GIT_SSH_KEY=/ssh/id_rsa \
     WORKSPACE=/logs
 
-# Run the MCP server
+# Run the MCP server using uv run (activates virtual environment)
 # Scans both /repos and /code_fragments directories
-CMD ["python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
+CMD ["uv", "run", "python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
      "--port", "3033", \
      "--rescan", \
      "/repos", \
