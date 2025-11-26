@@ -1104,8 +1104,8 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
     # Run the server
     import uvicorn
 
-    logger.info("🌐 Starting HTTP MCP server on http://127.0.0.1:%s/mcp", port)
-    uvicorn.run(starlette_app, host="127.0.0.1", port=port)
+    logger.info("🌐 Starting HTTP MCP server on http://0.0.0.0:%s/mcp", port)
+    uvicorn.run(starlette_app, host="0.0.0.0", port=port)
 
     return 0
 
