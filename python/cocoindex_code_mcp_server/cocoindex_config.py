@@ -1585,18 +1585,11 @@ def code_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoind
                     chunk["model_group"] = file["language"].transform(get_embedding_model_group)
 
             with file["chunks"].row() as chunk:
-                # Smart embedding with language-aware model selection
+                # Smart embedding using UniXcoder for all code languages
                 if use_smart_embedding and SMART_EMBEDDING_AVAILABLE:
-                    model_group: Any = chunk["model_group"]
-                    if model_group == "graphcodebert":
-                        LOGGER.info("Using GraphCodeBERT for %s", file["language"])
-                        chunk["embedding"] = chunk["content"].call(graphcodebert_embedding)
-                    elif model_group == "unixcoder":
-                        LOGGER.info("Using UniXcode for %s", file["language"])
-                        chunk["embedding"] = chunk["content"].call(unixcoder_embedding)
-                    else:  # fallback
-                        LOGGER.info("Using fallback model for %s", file["language"])
-                        chunk["embedding"] = chunk["content"].call(fallback_embedding)
+                    # Use UniXcoder for all code - supports C#, Rust, TypeScript, Python, Java, etc.
+                    LOGGER.info("Using UniXcoder smart embedding for %s", file["language"])
+                    chunk["embedding"] = chunk["content"].call(unixcoder_embedding)
                     # Store the actual embedding model name (critical for search filtering)
                     chunk["embedding_model"] = chunk["model_group"].transform(get_embedding_model_name)
                 else:
