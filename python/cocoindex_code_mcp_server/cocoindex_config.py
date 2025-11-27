@@ -1819,6 +1819,7 @@ def update_flow_config(
             "enable_polling": enable_polling,
             "poll_interval": poll_interval,
             "use_default_embedding": use_default_embedding,
+            "use_smart_embedding": not use_default_embedding,  # Smart embedding is inverse of default
             "use_default_chunking": use_default_chunking,
             "use_default_language_handler": use_default_language_handler,
         }
