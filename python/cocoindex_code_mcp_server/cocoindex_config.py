@@ -1301,41 +1301,23 @@ def graphcodebert_embedding(
     return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="microsoft/graphcodebert-base"))
 
 
-@cocoindex.op.function()
-def safe_unixcoder_embed(text: str) -> NDArray[np.float32]:
-    """
-    Safely embed text with UniXcoder, with truncation fallback and logging.
-    
-    Args:
-        text: Text to embed
-        
-    Returns:
-        Embedding vector
-    """
-    from sentence_transformers import SentenceTransformer
-    
-    model = SentenceTransformer("microsoft/unixcoder-base")
-    
-    # Estimate token count (rough estimate: 1 token ≈ 1 character for code)
-    estimated_tokens = len(text)
-    
-    if estimated_tokens > 500:
-        LOGGER.warning(
-            "⚠️  Chunk exceeds safe token limit (%d chars). Will truncate to fit UniXcoder's 512 token limit.",
-            estimated_tokens
-        )
-    
-    # Encode with truncation enabled as safety measure
-    embedding = model.encode(text, convert_to_numpy=True, truncate=True)
-    return embedding
-
-
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
 ) -> cocoindex.DataSlice[NDArray[np.float32]]:
-    """UniXcode embedding for Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart."""
-    return text.transform(safe_unixcoder_embed)
+    """
+    UniXcode embedding for Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart.
+    
+    Uses truncation to safely handle chunks that exceed 512 tokens.
+    Combined with max_chunk_size=500, this provides defense in depth.
+    """
+    return text.transform(
+        cocoindex.functions.SentenceTransformerEmbed(
+            model="microsoft/unixcoder-base",
+            # Enable truncation as safety measure for edge cases
+            truncate=True
+        )
+    )
 
 
 @cocoindex.transform_flow()
