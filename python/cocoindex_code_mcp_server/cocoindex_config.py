@@ -1308,14 +1308,11 @@ def unixcoder_embedding(
     """
     UniXcode embedding for Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart.
     
-    Uses truncation to safely handle chunks that exceed 512 tokens.
-    Combined with max_chunk_size=500, this provides defense in depth.
+    Uses max_chunk_size=500 to prevent chunks exceeding 512 token limit.
     """
     return text.transform(
         cocoindex.functions.SentenceTransformerEmbed(
-            model="microsoft/unixcoder-base",
-            # Enable truncation as safety measure for edge cases
-            truncate=True
+            model="microsoft/unixcoder-base"
         )
     )
 
