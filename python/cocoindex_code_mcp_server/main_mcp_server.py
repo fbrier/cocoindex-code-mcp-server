@@ -58,7 +58,7 @@ from .repository_manager import RepositoryManager
 
 # Backend abstraction imports
 from .backends import BackendFactory, VectorStoreBackend
-from .cocoindex_config import code_embedding_flow, code_to_embedding, run_flow_update, update_flow_config
+from .cocoindex_config import code_to_embedding, run_flow_update, update_flow_config
 
 # Local imports
 from .db.pgvector.hybrid_search import HybridSearchEngine
@@ -413,6 +413,9 @@ def main(
         except Exception as e:
             logger.error("❌ Rescan failed: %s", e)
             return 1
+
+    # Import code_embedding_flow for use in lifespan() function
+    from .cocoindex_config import code_embedding_flow
 
     # Determine paths to use
     final_paths = None
