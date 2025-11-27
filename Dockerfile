@@ -54,6 +54,5 @@ ENV REPOS_DIR=/repos \
 # Scans both /repos and /code_fragments directories
 CMD ["uv", "run", "python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
      "--port", "3033", \
-     "--rescan", \
      "/repos", \
      "/code_fragments"]
