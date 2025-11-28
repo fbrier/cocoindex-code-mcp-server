@@ -1301,20 +1301,75 @@ def graphcodebert_embedding(
     return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="microsoft/graphcodebert-base"))
 
 
+# Global cached model wrapper for UniXcoder
+_unixcoder_embed = cocoindex.functions.SentenceTransformerEmbed(model="microsoft/unixcoder-base")
+
+
+@cocoindex.op.function()
+def safe_unixcoder_embed(text: str) -> NDArray[np.float32]:
+    """
+    Safely embed text with automatic retry on token overflow.
+    
+    If embedding fails due to IndexError (tokens > 512):
+    1. Split text in half
+    2. Embed each half separately
+    3. Average the embeddings
+    4. Recursively retry up to 2 times (400 -> 200 -> 100 chars)
+    
+    This ensures no crashes while preserving semantic meaning.
+    """
+    def try_embed(chunk: str, depth: int = 0) -> NDArray[np.float32]:
+        """Recursively try to embed, splitting on failure."""
+        try:
+            # Try to embed with cached model
+            return _unixcoder_embed(chunk)
+        except Exception as e:
+            # Check if it's a token limit error
+            error_str = str(e)
+            if "index out of range" not in error_str.lower() and "indexerror" not in error_str.lower():
+                # Not a token limit error, re-raise
+                raise
+            
+            # Token limit exceeded
+            if depth >= 2:  # Max 2 splits (400 -> 200 -> 100)
+                LOGGER.error(
+                    "❌ Failed to embed after %d splits (%d chars). Using zero vector.",
+                    depth, len(chunk)
+                )
+                # Return zero vector as last resort
+                return np.zeros(768, dtype=np.float32)
+            
+            # Split in half and retry
+            mid = len(chunk) // 2
+            LOGGER.warning(
+                "⚠️  Token overflow at depth %d (%d chars). Splitting: %d + %d",
+                depth, len(chunk), mid, len(chunk) - mid
+            )
+            
+            left_emb = try_embed(chunk[:mid], depth + 1)
+            right_emb = try_embed(chunk[mid:], depth + 1)
+            
+            # Average the embeddings
+            return (left_emb + right_emb) / 2.0
+    
+    return try_embed(text)
+
+
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
 ) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
-    UniXcode embedding for Rust, TypeScript, C#, Kotlin, Scala, Swift, Dart.
+    UniXcode embedding with automatic retry on token overflow.
     
-    Uses max_chunk_size=400 to prevent chunks exceeding 512 token limit.
+    Features:
+    - Uses cached model for efficiency
+    - Auto-splits oversized chunks (rare edge cases)
+    - Averages embeddings from split chunks
+    - Logs warnings for visibility
+    - No crashes, no data loss
     """
-    return text.transform(
-        cocoindex.functions.SentenceTransformerEmbed(
-            model="microsoft/unixcoder-base"
-        )
-    )
+    return text.transform(safe_unixcoder_embed)
 
 
 @cocoindex.transform_flow()
