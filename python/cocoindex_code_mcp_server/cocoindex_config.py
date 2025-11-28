@@ -1301,28 +1301,25 @@ def graphcodebert_embedding(
     return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="microsoft/graphcodebert-base"))
 
 
-# Global cached model wrapper for UniXcoder
-_unixcoder_embed = cocoindex.functions.SentenceTransformerEmbed(model="microsoft/unixcoder-base")
-
-
 @cocoindex.op.function()
 def safe_unixcoder_embed(text: str) -> NDArray[np.float32]:
     """
     Safely embed text with automatic retry on token overflow.
     
-    If embedding fails due to IndexError (tokens > 512):
-    1. Split text in half
-    2. Embed each half separately
-    3. Average the embeddings
-    4. Recursively retry up to 2 times (400 -> 200 -> 100 chars)
-    
-    This ensures no crashes while preserving semantic meaning.
+    Uses sentence_transformers directly (cached via HuggingFace cache).
+    Splits and averages on IndexError to handle token limit overflow.
     """
+    from sentence_transformers import SentenceTransformer
+    
+    # Load model (uses HuggingFace cache, fast on subsequent calls)
+    # Note: Must load per-subprocess due to CocoIndex execution model
+    model = SentenceTransformer("microsoft/unixcoder-base")
+    
     def try_embed(chunk: str, depth: int = 0) -> NDArray[np.float32]:
         """Recursively try to embed, splitting on failure."""
         try:
-            # Try to embed with cached model
-            return _unixcoder_embed(chunk)
+            # Try to embed
+            return model.encode(chunk, convert_to_numpy=True)
         except Exception as e:
             # Check if it's a token limit error
             error_str = str(e)
