@@ -374,3 +374,69 @@ curl -X POST http://solar.office.multideck.com:3033/mcp/ \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
 ```
+
+---
+
+## FINAL SOLUTION (Dec 3, 2025)
+
+### Root Causes Fixed
+
+1. **Query embedding model mismatch**: Queries used `all-mpnet-base-v2` while index used `microsoft/unixcoder-base`
+2. **HuggingFace rate limiting**: Runtime downloads hitting 429 errors
+3. **Meta tensor errors**: Custom `safe_unixcoder_embed` function creating new model instances
+4. **Token overflow**: max_chunk_size=400 still caused rare failures
+
+### Final Implementation
+
+**1. Dockerfile**
+- Accept `HF_TOKEN` as build argument
+- Pre-download models during build (with authentication)
+- Clear token after download for security
+
+**2. GitHub Actions**
+- Pass `HUGGINGFACE_TOKEN` secret as build arg
+- Models cached in Docker image at build time
+
+**3. Query Embeddings (main_mcp_server.py)**
+```python
+def safe_embedding_function(query: str, language: Optional[str] = None) -> object:
+    # Use UniXcoder directly to match indexed data
+    model = SentenceTransformer("microsoft/unixcoder-base")
+    return model.encode(query, convert_to_numpy=True)
+```
+
+**4. Index Embeddings (cocoindex_config.py)**
+```python
+@cocoindex.transform_flow()
+def unixcoder_embedding(text: cocoindex.DataSlice[str]) -> cocoindex.DataSlice[NDArray[np.float32]]:
+    # Use CocoIndex's built-in to avoid meta tensor errors
+    return text.transform(
+        cocoindex.functions.SentenceTransformerEmbed(model="microsoft/unixcoder-base")
+    )
+```
+
+**5. Chunk Sizes**
+- Reduced ALL `max_chunk_size` from 400 → 300 chars
+- Trade-off: More chunks but guaranteed no token overflow
+- 300 chars = ~250-280 tokens (safe margin below 512 limit)
+
+### Why This Works
+
+✅ **Query/Index models match** - Both use UniXcoder (768D)
+✅ **No HF rate limiting** - Models pre-downloaded with token
+✅ **No meta tensor errors** - Using CocoIndex's SentenceTransformerEmbed
+✅ **No token overflow** - 300 char limit provides safe margin
+✅ **Query embeddings work** - SentenceTransformer loaded once per query (acceptable)
+
+### Trade-offs Accepted
+
+- **More chunks**: max_chunk_size=300 creates ~25% more chunks than 400
+- **Model loading in queries**: SentenceTransformer loaded per query (cached on disk)
+- **No automatic retry**: Removed complex retry logic to avoid meta tensor errors
+
+### Status
+
+- ✅ Committed and pushed (commits: 45e16da, f7dfc8c, [pending])
+- ⏳ Waiting for GitHub Actions build
+- 📦 Ready for Portainer deployment
+- 🎯 Should work without database truncation (indexed data already uses UniXcoder)

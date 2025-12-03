@@ -117,39 +117,39 @@ class CodeMetadata:
 # Language-specific chunking parameters
 CHUNKING_PARAMS = {
     # Larger chunks for documentation and config files
-    "Markdown": ChunkingParams(chunk_size=2000, min_chunk_size=500, chunk_overlap=200, max_chunk_size=400),
-    # "YAML": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=100, max_chunk_size=400),
-    "JSON": ChunkingParams(chunk_size=1500, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "XML": ChunkingParams(chunk_size=1500, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "TOML": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=100, max_chunk_size=400),
+    "Markdown": ChunkingParams(chunk_size=2000, min_chunk_size=500, chunk_overlap=200, max_chunk_size=300),
+    # "YAML": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=100, max_chunk_size=300),
+    "JSON": ChunkingParams(chunk_size=1500, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "XML": ChunkingParams(chunk_size=1500, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "TOML": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=100, max_chunk_size=300),
     # Smaller chunks for dense code
-    "C": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=150, max_chunk_size=400),
-    "C++": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=150, max_chunk_size=400),
-    "Rust": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=400),
-    "Go": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=400),
-    "Java": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "C#": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "Scala": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=400),
+    "C": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=150, max_chunk_size=300),
+    "C++": ChunkingParams(chunk_size=800, min_chunk_size=200, chunk_overlap=150, max_chunk_size=300),
+    "Rust": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=300),
+    "Go": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=300),
+    "Java": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "C#": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "Scala": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=200, max_chunk_size=300),
     # Medium chunks for scripting languages
-    "Python": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "JavaScript": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "TypeScript": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "TSX": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "Ruby": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
-    "PHP": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=400),
+    "Python": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "JavaScript": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "TypeScript": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "TSX": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "Ruby": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
+    "PHP": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=250, max_chunk_size=300),
     # Web and styling
-    "HTML": ChunkingParams(chunk_size=1500, min_chunk_size=400, chunk_overlap=200, max_chunk_size=400),
-    "CSS": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=150, max_chunk_size=400),
+    "HTML": ChunkingParams(chunk_size=1500, min_chunk_size=400, chunk_overlap=200, max_chunk_size=300),
+    "CSS": ChunkingParams(chunk_size=1000, min_chunk_size=250, chunk_overlap=150, max_chunk_size=300),
     # Data and scientific
-    "SQL": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "R": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "Fortran": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
+    "SQL": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "R": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "Fortran": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
     # Others
-    "Pascal": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "Swift": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
-    "Haskell": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
+    "Pascal": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "Swift": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
+    "Haskell": ChunkingParams(chunk_size=1200, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
     # Default fallback
-    "_DEFAULT": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=400),
+    "_DEFAULT": ChunkingParams(chunk_size=1000, min_chunk_size=300, chunk_overlap=200, max_chunk_size=300),
 }
 
 # Effective chunking parameters (potentially scaled)
@@ -1301,72 +1301,19 @@ def graphcodebert_embedding(
     return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="microsoft/graphcodebert-base"))
 
 
-@cocoindex.op.function()
-def safe_unixcoder_embed(text: str) -> NDArray[np.float32]:
-    """
-    Safely embed text with automatic retry on token overflow.
-    
-    Uses sentence_transformers directly (cached via HuggingFace cache).
-    Splits and averages on IndexError to handle token limit overflow.
-    """
-    from sentence_transformers import SentenceTransformer
-    
-    # Load model (uses HuggingFace cache, fast on subsequent calls)
-    # Note: Must load per-subprocess due to CocoIndex execution model
-    model = SentenceTransformer("microsoft/unixcoder-base")
-    
-    def try_embed(chunk: str, depth: int = 0) -> NDArray[np.float32]:
-        """Recursively try to embed, splitting on failure."""
-        try:
-            # Try to embed
-            return model.encode(chunk, convert_to_numpy=True)
-        except Exception as e:
-            # Check if it's a token limit error
-            error_str = str(e)
-            if "index out of range" not in error_str.lower() and "indexerror" not in error_str.lower():
-                # Not a token limit error, re-raise
-                raise
-            
-            # Token limit exceeded
-            if depth >= 2:  # Max 2 splits (400 -> 200 -> 100)
-                LOGGER.error(
-                    "❌ Failed to embed after %d splits (%d chars). Using zero vector.",
-                    depth, len(chunk)
-                )
-                # Return zero vector as last resort
-                return np.zeros(768, dtype=np.float32)
-            
-            # Split in half and retry
-            mid = len(chunk) // 2
-            LOGGER.warning(
-                "⚠️  Token overflow at depth %d (%d chars). Splitting: %d + %d",
-                depth, len(chunk), mid, len(chunk) - mid
-            )
-            
-            left_emb = try_embed(chunk[:mid], depth + 1)
-            right_emb = try_embed(chunk[mid:], depth + 1)
-            
-            # Average the embeddings
-            return (left_emb + right_emb) / 2.0
-    
-    return try_embed(text)
-
-
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
 ) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
-    UniXcode embedding with automatic retry on token overflow.
-    
-    Features:
-    - Uses cached model for efficiency
-    - Auto-splits oversized chunks (rare edge cases)
-    - Averages embeddings from split chunks
-    - Logs warnings for visibility
-    - No crashes, no data loss
+    UniXcoder embedding for code (C#, TypeScript, Rust, etc.).
+
+    Uses CocoIndex's SentenceTransformerEmbed to avoid meta tensor errors.
+    Chunk size is limited to 400 chars to prevent token overflow (max 512 tokens).
     """
-    return text.transform(safe_unixcoder_embed)
+    return text.transform(
+        cocoindex.functions.SentenceTransformerEmbed(model="microsoft/unixcoder-base")
+    )
 
 
 @cocoindex.transform_flow()
