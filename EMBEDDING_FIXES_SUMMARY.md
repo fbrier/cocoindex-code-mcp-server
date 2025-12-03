@@ -332,7 +332,7 @@ curl -X POST http://solar.office.multideck.com:3033/mcp/ \
      ```json
      {
        "mcpServers": {
-         "cocoindex-rag": {
+         "cocoindex": {
            "url": "http://solar.office.multideck.com:3033/mcp",
            "transport": "streamable-http"
          }
