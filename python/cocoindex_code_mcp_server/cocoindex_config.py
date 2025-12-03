@@ -26,12 +26,13 @@ CocoIndex configuration and flow definitions.
 import copy
 import json
 import logging
+import threading
 
 # Temporarily disabled due to cocoindex compatibility
 # from __future__ import annotations
 from dataclasses import dataclass
 from types import FunctionType
-from typing import Any, Dict, List, TypedDict, Union, cast
+from typing import Any, Dict, List, Optional, TypedDict, Union, cast
 
 import numpy as np
 from cocoindex_code_mcp_server.mappers import SOURCE_CONFIG
