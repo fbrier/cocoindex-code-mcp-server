@@ -54,14 +54,14 @@ RUN python -c "import os; from sentence_transformers import SentenceTransformer;
     print('Attempting to download microsoft/unixcoder-base...'); \
     try: \
         SentenceTransformer('microsoft/unixcoder-base', use_auth_token=token if token else None); \
-        print('✓ microsoft/unixcoder-base cached'); \
+        print('[OK] microsoft/unixcoder-base cached'); \
     except Exception as e: \
-        print('⚠ Could not download microsoft/unixcoder-base:', str(e)[:100]); \
+        print('[WARN] Could not download microsoft/unixcoder-base:', str(e)[:100]); \
     try: \
         SentenceTransformer('sentence-transformers/all-mpnet-base-v2', use_auth_token=token if token else None); \
-        print('✓ all-mpnet-base-v2 cached'); \
+        print('[OK] all-mpnet-base-v2 cached'); \
     except Exception as e: \
-        print('⚠ Could not download all-mpnet-base-v2:', str(e)[:100]); \
+        print('[WARN] Could not download all-mpnet-base-v2:', str(e)[:100]); \
     print('Build complete - models will download at runtime if needed')" || true
 
 # Unset HF_TOKEN after model download (security best practice)
