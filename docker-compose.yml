@@ -31,6 +31,9 @@ services:
       # Database connection (use 'postgres' as hostname for docker network)
       - COCOINDEX_DATABASE_URL=postgresql://cocoindex:cocoindex@postgres:5432/cocoindex
 
+      # HuggingFace token for model downloads (avoids rate limiting)
+      - HF_TOKEN=${HF_TOKEN}
+
       # Directory paths in container
       - REPOS_DIR=/repos
       - CODE_FRAGMENTS_DIR=/code_fragments

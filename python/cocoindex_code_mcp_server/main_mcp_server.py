@@ -126,36 +126,54 @@ shutdown_event = threading.Event()
 background_thread: Optional[threading.Thread] = None
 
 
-def safe_embedding_function(query: str) -> object:
-    """Safe wrapper for embedding function that handles shutdown gracefully."""
+def safe_embedding_function(query: str, language: Optional[str] = None) -> object:
+    """
+    Safe wrapper for embedding function that handles shutdown gracefully.
+
+    Uses UniXcoder for query embeddings to match the indexing model for C#/TypeScript/Rust/etc.
+    This ensures query embeddings are in the same vector space as indexed code embeddings.
+
+    Args:
+        query: Text to embed
+        language: Programming language hint (optional, defaults to using smart embedding)
+
+    Returns:
+        768-dimensional embedding vector
+    """
     if shutdown_event.is_set():
-        # Return a zero vector if shutting down
+        # Return a zero vector if shutting down (768D for UniXcoder/all-mpnet-base-v2)
         try:
             import numpy as np
 
-            return np.zeros(384, dtype=np.float32)
+            return np.zeros(768, dtype=np.float32)
         except ImportError:
-            return [0.0] * 384
+            return [0.0] * 768
 
     try:
-        return code_to_embedding.eval(query)
+        # Use UniXcoder for query embeddings to match indexing
+        # This is the same model used for C#, TypeScript, Rust, etc. in smart embedding
+        from sentence_transformers import SentenceTransformer
+
+        # Load model from cache (should be pre-downloaded in Docker image)
+        model = SentenceTransformer("microsoft/unixcoder-base")
+        return model.encode(query, convert_to_numpy=True)
     except RuntimeError as e:
         if "cannot schedule new futures after shutdown" in str(e):
             try:
                 import numpy as np
 
-                return np.zeros(384, dtype=np.float32)
+                return np.zeros(768, dtype=np.float32)
             except ImportError:
-                return [0.0] * 384
+                return [0.0] * 768
         raise
     except Exception as e:
         logger.warning("Embedding function failed: %s", e)
         try:
             import numpy as np
 
-            return np.zeros(384, dtype=np.float32)
+            return np.zeros(768, dtype=np.float32)
         except ImportError:
-            return [0.0] * 384
+            return [0.0] * 768
 
 
 def handle_shutdown(signum, frame) -> None:

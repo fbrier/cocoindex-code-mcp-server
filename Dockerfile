@@ -41,6 +41,15 @@ RUN pip install --user --no-cache-dir --upgrade pip && \
     pip install --user --no-cache-dir uv && \
     uv sync --all-extras
 
+# Pre-download embedding models to avoid runtime downloads and rate limiting
+# This caches models in the Docker image so they're available offline
+RUN python -c "from sentence_transformers import SentenceTransformer; \
+    print('Downloading microsoft/unixcoder-base...'); \
+    SentenceTransformer('microsoft/unixcoder-base'); \
+    print('Downloading sentence-transformers/all-mpnet-base-v2...'); \
+    SentenceTransformer('sentence-transformers/all-mpnet-base-v2'); \
+    print('Models cached successfully')"
+
 # Expose MCP server port
 EXPOSE 3033
 
