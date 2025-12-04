@@ -1122,6 +1122,49 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                 # Initialize background components
                 await background_initialization()
 
+                # Migrate embedding column from jsonb to vector type if needed
+                # This runs AFTER CocoIndex creates tables with jsonb columns
+                if backend_type == "postgres":
+                    try:
+                        with pool.connection() as conn:
+                            with conn.cursor() as cur:
+                                # Check if table exists and has jsonb embedding column
+                                cur.execute("""
+                                    SELECT data_type
+                                    FROM information_schema.columns
+                                    WHERE table_name = %s
+                                    AND column_name = 'embedding'
+                                """, (table_name.lower(),))
+                                result = cur.fetchone()
+
+                                if result and result[0] == 'jsonb':
+                                    logger.info("🔄 Converting embedding column from jsonb to vector(768)...")
+
+                                    # Convert jsonb arrays to native vector type
+                                    cur.execute(f"""
+                                        ALTER TABLE {table_name.lower()}
+                                          ALTER COLUMN embedding TYPE vector(768)
+                                          USING (embedding::text::vector)
+                                    """)
+
+                                    # Create pgvector index for fast similarity search
+                                    cur.execute(f"""
+                                        CREATE INDEX IF NOT EXISTS idx_embedding_cosine
+                                          ON {table_name.lower()}
+                                          USING ivfflat (embedding vector_cosine_ops)
+                                          WITH (lists = 100)
+                                    """)
+
+                                    conn.commit()
+                                    logger.info("✅ Embedding column migrated to vector type with index")
+                                elif result:
+                                    logger.info("✅ Embedding column already using vector type")
+                                else:
+                                    logger.warning("⚠️  Embedding column not found in table")
+                    except Exception as e:
+                        logger.error("❌ Failed to migrate embedding column: %s", e)
+                        logger.warning("   Hybrid search may not work correctly")
+
                 try:
                     yield
                 finally:
