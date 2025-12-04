@@ -77,6 +77,8 @@ dependencies = [
     "maturin>=1.9.6",
     # needed for deprecation warnings for python 3.11 and 3.12
     "typing-extensions>=4.15.0",
+    # File system monitoring for live updates
+    "watchdog>=6.0.0",
 ]
 
 [project.scripts]

@@ -54,6 +54,7 @@ from starlette.types import Receive, Scope, Send
 import cocoindex
 
 from . import mcp_json_schemas
+from .file_watcher import FileWatcher
 from .repository_manager import RepositoryManager
 
 # Backend abstraction imports
@@ -124,6 +125,7 @@ logger = logging.getLogger(__name__)
 hybrid_search_engine: Optional[HybridSearchEngine] = None
 shutdown_event = threading.Event()
 background_thread: Optional[threading.Thread] = None
+file_watcher: Optional[FileWatcher] = None
 
 # Cached embedding model (loaded once, reused for all queries)
 _cached_query_model: Optional[object] = None
@@ -200,6 +202,12 @@ def handle_shutdown(signum, frame) -> None:
     """Handle shutdown signals gracefully."""
     logger.info("Shutdown signal received, cleaning up...")
     shutdown_event.set()
+
+    # Stop file watcher if it exists
+    global file_watcher
+    if file_watcher and file_watcher.is_alive():
+        logger.info("Stopping file watcher...")
+        file_watcher.stop()
 
     # Wait for background thread to finish if it exists
     global background_thread
@@ -478,9 +486,7 @@ def main(
 
     logger.info("🚀 CocoIndex RAG MCP Server starting...")
     logger.info("📁 Paths: %s", final_paths or ["cocoindex (default)"])
-    logger.info("🔴 Live updates: %s", "ENABLED" if live_enabled else "DISABLED")
-    if live_enabled:
-        logger.info("⏰ Polling interval: %s seconds", poll)
+    logger.info("🔴 Live updates: %s", "ENABLED (inotify file watcher)" if live_enabled else "DISABLED")
     if chunk_factor_percent != 100:
         logger.info("📏 Chunk size scaling: %s%%", chunk_factor_percent)
 
@@ -1021,32 +1027,35 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
     async def background_initialization():
         """Start flow updates."""
         try:
-            # Set up live updates if enabled
+            # Run initial scan
+            logger.info("🔄 Running initial flow update...")
+            run_flow_update(live_update=False)
+            logger.info("✅ Initial flow update completed")
+
+            # Set up file watcher if live updates enabled
             if live_enabled:
-                logger.info("🔄 Starting live flow updates...")
+                logger.info("👁️  Starting file system watcher (inotify)...")
 
-                def run_flow_background():
-                    """Background thread function for live flow updates."""
-                    while not shutdown_event.is_set():
-                        try:
-                            run_flow_update(live_update=True)
-                            if shutdown_event.wait(poll):
-                                break
-                        except Exception as e:
-                            if not shutdown_event.is_set():
-                                logger.error("Error in background flow update: %s", e)
-                                if shutdown_event.wait(10):
-                                    break
+                def on_file_change():
+                    """Callback when file changes detected."""
+                    if shutdown_event.is_set():
+                        return
+                    try:
+                        logger.info("🔄 Re-indexing changed files...")
+                        run_flow_update(live_update=False)
+                        logger.info("✅ Re-index completed")
+                    except Exception as e:
+                        logger.error("❌ Error during re-index: %s", e, exc_info=True)
 
-                # Start background flow update
-                global background_thread
-                background_thread = threading.Thread(target=run_flow_background, daemon=True)
-                background_thread.start()
-                logger.info("✅ Background flow updates started")
-            else:
-                logger.info("🔄 Running one-time flow update...")
-                run_flow_update(live_update=False)
-                logger.info("✅ Flow update completed")
+                # Create and start file watcher
+                global file_watcher
+                file_watcher = FileWatcher(
+                    watch_paths=final_paths or [],
+                    on_change_callback=on_file_change,
+                    debounce_seconds=2.0,  # Wait 2 seconds after last change before re-indexing
+                )
+                file_watcher.start()
+                logger.info("✅ File watcher started - monitoring %d paths", len(final_paths or []))
 
         except Exception as e:
             logger.error("❌ Background initialization failed: %s", e)
@@ -1170,6 +1179,12 @@ include file python/cocoindex_code_mcp_server/grammars/keyword_search.lark here
                 finally:
                     logger.info("🛑 MCP Server shutting down...")
                     shutdown_event.set()
+
+                    # Stop file watcher
+                    if file_watcher and file_watcher.is_alive():
+                        logger.info("Stopping file watcher...")
+                        file_watcher.stop()
+
                     if hasattr(backend, "close"):
                         backend.close()
                     logger.info("🧹 Backend resources cleaned up")

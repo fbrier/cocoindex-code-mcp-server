@@ -10,6 +10,7 @@ Key capabilities:
 - Hybrid search combining vector similarity and keyword metadata search
 - Smart embedding with language-specific models (GraphCodeBERT, UniXcoder)
 - Tree-sitter based AST chunking for 20+ programming languages
+- Real-time file monitoring with inotify (watchdog library) - detects new files instantly
 - Incremental indexing with live update mode
 - PostgreSQL + pgvector backend
 
