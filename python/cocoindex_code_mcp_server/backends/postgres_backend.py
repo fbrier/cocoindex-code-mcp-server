@@ -96,6 +96,10 @@ def _get_table_columns(pool: ConnectionPool, table_name: str) -> Set[str]:
 class PostgresBackend(VectorStoreBackend):
     """PostgreSQL + pgvector backend implementation."""
 
+    # Documentation file extensions to exclude from code search
+    # These files are typically documentation, not code examples
+    DOC_EXTENSIONS = {".md", ".txt", ".rst", ".adoc", ".html", ".htm", ".pdf", ".doc", ".docx"}
+
     def __init__(self, pool: ConnectionPool, table_name: str) -> None:
         """
         Initialize PostgreSQL backend.
@@ -125,6 +129,19 @@ class PostgresBackend(VectorStoreBackend):
                 self.table_name = lowercase_table_name
 
         return available_columns
+
+    def _build_doc_exclusion_clause(self) -> str:
+        """
+        Build SQL WHERE clause to exclude documentation files.
+
+        Excludes files with extensions like .md, .txt, .rst, .html, etc.
+        This ensures code search returns actual code files, not documentation.
+
+        Returns:
+            SQL clause like: "AND filename NOT LIKE '%.md' AND filename NOT LIKE '%.txt' ..."
+        """
+        conditions = [f"filename NOT LIKE '%{ext}'" for ext in self.DOC_EXTENSIONS]
+        return " AND " + " AND ".join(conditions)
 
     def _build_select_clause(
         self, include_distance: bool = False, distance_alias: str = "distance"
@@ -189,6 +206,12 @@ class PostgresBackend(VectorStoreBackend):
                 if embedding_model:
                     where_clause = "WHERE embedding_model = %s"
                     params.append(embedding_model)
+                else:
+                    where_clause = "WHERE 1=1"  # Placeholder for doc exclusion
+
+                # IMPORTANT: Exclude documentation files to ensure code search returns actual code
+                doc_exclusion = self._build_doc_exclusion_clause()
+                where_clause = f"{where_clause}{doc_exclusion}"
 
                 params.append(top_k)
 
@@ -265,6 +288,11 @@ class PostgresBackend(VectorStoreBackend):
         if embedding_model:
             where_clause = f"({where_clause}) AND embedding_model = %s"
             params.append(embedding_model)
+
+        # IMPORTANT: Exclude documentation files to ensure code search returns actual code
+        # This filters out .md, .txt, .rst, .html and other documentation file types
+        doc_exclusion = self._build_doc_exclusion_clause()
+        where_clause = f"({where_clause}){doc_exclusion}"
 
         with self.pool.connection() as conn:
             register_vector(conn)
