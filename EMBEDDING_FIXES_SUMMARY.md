@@ -436,7 +436,64 @@ def unixcoder_embedding(text: cocoindex.DataSlice[str]) -> cocoindex.DataSlice[N
 
 ### Status
 
-- ✅ Committed and pushed (commits: 45e16da, f7dfc8c, [pending])
-- ⏳ Waiting for GitHub Actions build
-- 📦 Ready for Portainer deployment
-- 🎯 Should work without database truncation (indexed data already uses UniXcoder)
+- ✅ Committed and pushed (commits: 45e16da, f7dfc8c, 8c84fb9, 2e15e45)
+- ✅ GitHub Actions build successful
+- ✅ Database migration completed (296 embeddings, 278 C# files)
+- ✅ Vector search working
+- ⚠️  Documentation files appearing in results (Contributing.md instead of C# code)
+
+---
+
+## FIX: Documentation File Exclusion (Dec 3, 2025)
+
+### Problem
+Vector search was returning irrelevant documentation files instead of code:
+- Query: "player movement input handling"
+- Result: Contributing.md (23,000 characters)
+- Expected: C# code files with method signatures
+
+**Root Cause**: Vector similarity treats code and documentation equally. Documentation contains keywords ("player", "movement", "handling") that match queries.
+
+**User Goal**: "Find relevant code examples to implement C# components to reduce token usage and provide exact method signatures."
+
+### Solution Implemented
+
+**Modified**: `python/cocoindex_code_mcp_server/backends/postgres_backend.py`
+
+1. **Added DOC_EXTENSIONS class variable**
+   ```python
+   DOC_EXTENSIONS = {".md", ".txt", ".rst", ".adoc", ".html", ".htm", ".pdf", ".doc", ".docx"}
+   ```
+
+2. **Added _build_doc_exclusion_clause() method**
+   ```python
+   def _build_doc_exclusion_clause(self) -> str:
+       """Build SQL WHERE clause to exclude documentation files."""
+       conditions = [f"filename NOT LIKE '%{ext}'" for ext in self.DOC_EXTENSIONS]
+       return " AND " + " AND ".join(conditions)
+   ```
+
+3. **Applied to hybrid_search() and vector_search()**
+   ```python
+   # In hybrid_search()
+   doc_exclusion = self._build_doc_exclusion_clause()
+   where_clause = f"({where_clause}){doc_exclusion}"
+
+   # In vector_search()
+   doc_exclusion = self._build_doc_exclusion_clause()
+   where_clause = f"{where_clause}{doc_exclusion}"
+   ```
+
+### Why This Works
+
+✅ **Transparent**: No changes needed to query syntax - works automatically
+✅ **Effective**: Excludes all common documentation file types
+✅ **Comprehensive**: Applied to both hybrid and vector search
+✅ **Focused**: Returns actual code files with method signatures
+✅ **Token efficient**: Eliminates large documentation files from results
+
+### Commit
+- **Commit**: 2e15e45 - "Fix: Exclude documentation files from code search results"
+- **Status**: ✅ Pushed to GitHub
+- **Build**: ⏳ Awaiting GitHub Actions build completion
+- **Next**: Deploy via Portainer and test with same curl command
