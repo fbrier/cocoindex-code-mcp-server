@@ -139,8 +139,10 @@ class PostgresBackend(VectorStoreBackend):
 
         Returns:
             SQL clause like: "AND filename NOT LIKE '%.md' AND filename NOT LIKE '%.txt' ..."
+
+        Note: Use %% to escape % in psycopg parameterized queries.
         """
-        conditions = [f"filename NOT LIKE '%{ext}'" for ext in self.DOC_EXTENSIONS]
+        conditions = [f"filename NOT LIKE '%%{ext}'" for ext in self.DOC_EXTENSIONS]
         return " AND " + " AND ".join(conditions)
 
     def _build_select_clause(
