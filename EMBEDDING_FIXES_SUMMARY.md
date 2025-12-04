@@ -492,8 +492,15 @@ Vector search was returning irrelevant documentation files instead of code:
 ✅ **Focused**: Returns actual code files with method signatures
 ✅ **Token efficient**: Eliminates large documentation files from results
 
-### Commit
-- **Commit**: 2e15e45 - "Fix: Exclude documentation files from code search results"
-- **Status**: ✅ Pushed to GitHub
-- **Build**: ⏳ Awaiting GitHub Actions build completion
+### Commits
+- **Commit 1**: 2e15e45 - "Fix: Exclude documentation files from code search results"
+- **Commit 2**: 53dc0eb - "Fix: Escape % character in SQL LIKE patterns for psycopg"
+  - **Error encountered**: `only '%s', '%b', '%t' are allowed as placeholders, got '%.`
+  - **Root cause**: psycopg interprets `%` as placeholder prefix in SQL strings
+  - **Fix**: Escaped `%` by doubling it (`%%`) in LIKE patterns
+  - **Example**: `LIKE '%%.md'` → psycopg interprets as literal `'%.md'`
+
+### Status
+- **Status**: ✅ Both commits pushed to GitHub
+- **Build**: ⏳ Awaiting GitHub Actions build completion (commit 53dc0eb)
 - **Next**: Deploy via Portainer and test with same curl command
