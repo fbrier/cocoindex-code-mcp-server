@@ -101,9 +101,8 @@ class CodeFileEventHandler(FileSystemEventHandler):
         if suffix in self.CODE_EXTENSIONS:
             return True
 
-        # Also accept .meta.json files (code fragment metadata)
-        if file_path.endswith(".meta.json"):
-            return True
+        # NOTE: Do NOT monitor .meta.json files - they are metadata, not code
+        # CocoIndex will fail trying to embed them as code files
 
         return False
 
