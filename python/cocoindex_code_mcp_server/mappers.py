@@ -389,6 +389,8 @@ SOURCE_CONFIG = {
         "**/.DS_Store",
         "**/Thumbs.db",
         "**/*.tmp",
+        # Code fragment metadata (not actual code)
+        "**/*.meta.json",
         # python
         "**/.venv",
     ],
