@@ -1068,41 +1068,6 @@ class ChunkDict(TypedDict):
 
 
 @cocoindex.op.function()
-def convert_embedding_to_list(embedding: NDArray[np.float32]) -> List[float]:
-    """
-    Convert numpy embedding array to Python list for pgvector compatibility.
-
-    CocoIndex's Postgres target doesn't automatically register pgvector type adapters,
-    so numpy arrays get serialized as JSON instead of pgvector format.
-    Converting to a Python list allows psycopg to properly serialize to vector type.
-
-    Args:
-        embedding: Numpy array embedding vector (768-dim for UniXcoder)
-
-    Returns:
-        Python list of floats compatible with pgvector
-
-    Raises:
-        TypeError: If embedding is not a numpy array
-    """
-    try:
-        if isinstance(embedding, np.ndarray):
-            result = embedding.tolist()
-            LOGGER.debug("✅ Converted numpy array embedding to list: %d dimensions", len(result))
-            return result
-        elif isinstance(embedding, list):
-            # Already a list, return as-is
-            LOGGER.debug("✅ Embedding already a list: %d dimensions", len(embedding))
-            return embedding
-        else:
-            LOGGER.error("❌ Unexpected embedding type: %s", type(embedding))
-            raise TypeError(f"Expected numpy array or list, got {type(embedding)}")
-    except Exception as e:
-        LOGGER.error("Failed to convert embedding to list: %s", e)
-        raise
-
-
-@cocoindex.op.function()
 def ensure_unique_chunk_locations(chunks) -> List[cocoindex.Json]:
     """
     Post-process chunks to ensure location fields are unique within the file.
@@ -1298,15 +1263,14 @@ def promote_metadata_fields(metadata_json: str) -> Dict[str, Any]:
 @cocoindex.transform_flow()
 def code_to_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[NDArray[np.float32]]:
+) -> cocoindex.DataSlice[List[float]]:
     """
     Default embedding using a SentenceTransformer model with caching.
-    """
 
-    return text.transform(
-        # Embed text using SentenceTransformer model with meta tensor handling.
-        cocoindex.functions.SentenceTransformerEmbed(model=DEFAULT_TRANSFORMER_MODEL)
-    )
+    Returns:
+        Python list of floats (384-dimensional) for pgvector compatibility
+    """
+    return text.transform(fallback_embed_to_list)
 
 
 # Removed helper function that was causing DataScope context issues
@@ -1343,7 +1307,7 @@ _subprocess_model_lock = threading.Lock()
 
 
 @cocoindex.op.function()
-def safe_embed_with_retry(text: str, max_retries: int = 2) -> NDArray[np.float32]:
+def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
     """
     Embed text with automatic retry on token overflow.
 
@@ -1360,7 +1324,7 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> NDArray[np.float32
         max_retries: Maximum split depth (default: 2, allows 4x split)
 
     Returns:
-        768-dimensional embedding vector
+        768-dimensional embedding vector as Python list (for pgvector compatibility)
     """
     global _subprocess_embedding_model
 
@@ -1406,29 +1370,57 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> NDArray[np.float32
             # Average the embeddings
             return (left_emb + right_emb) / 2.0
 
-    return try_embed(text)
+    # Get embedding as numpy array, then convert to Python list for pgvector
+    embedding_array = try_embed(text)
+    embedding_list = embedding_array.tolist()
+    LOGGER.debug("✅ Converted embedding to list: %d dimensions", len(embedding_list))
+    return embedding_list
 
 
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[NDArray[np.float32]]:
+) -> cocoindex.DataSlice[List[float]]:
     """
     UniXcoder embedding for code (C#, TypeScript, Rust, etc.).
 
     Uses cached model with automatic retry on token overflow.
     Handles edge cases where chunks exceed 512 tokens by splitting and averaging.
+
+    Returns:
+        Python list of floats (768-dimensional) for pgvector compatibility
     """
     # Use custom function with retry logic instead of built-in
     return text.transform(safe_embed_with_retry)
 
 
+@cocoindex.op.function()
+def fallback_embed_to_list(text: str) -> List[float]:
+    """
+    Fallback embedding that returns Python list for pgvector compatibility.
+
+    Uses all-mpnet-base-v2 model and converts numpy array to list.
+    """
+    from sentence_transformers import SentenceTransformer
+
+    model = SentenceTransformer(DEFAULT_TRANSFORMER_MODEL)
+    embedding_array = model.encode(text, convert_to_numpy=True)
+    embedding_list = embedding_array.tolist()
+    LOGGER.debug("✅ Fallback embedding converted to list: %d dimensions", len(embedding_list))
+    return embedding_list
+
+
 @cocoindex.transform_flow()
 def fallback_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[NDArray[np.float32]]:
-    """Fallback embedding for languages not supported by specialized models."""
-    return text.transform(cocoindex.functions.SentenceTransformerEmbed(model=DEFAULT_TRANSFORMER_MODEL))
+) -> cocoindex.DataSlice[List[float]]:
+    """
+    Fallback embedding for languages not supported by specialized models.
+
+    Returns:
+        Python list of floats (384-dimensional) for pgvector compatibility
+    """
+    return text.transform(fallback_embed_to_list)
 
 
 # Language group to embedding model mapping for smart embedding
@@ -1703,14 +1695,14 @@ def code_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoind
                 if use_smart_embedding and SMART_EMBEDDING_AVAILABLE:
                     # Use UniXcoder for all code - supports C#, Rust, TypeScript, Python, Java, etc.
                     LOGGER.info("Using UniXcoder smart embedding for %s", file["language"])
-                    # Convert numpy array to list for proper pgvector serialization
-                    chunk["embedding"] = chunk["content"].call(unixcoder_embedding).transform(convert_embedding_to_list)
+                    # Embedding functions now return Python lists directly for pgvector compatibility
+                    chunk["embedding"] = chunk["content"].call(unixcoder_embedding)
                     # Store the actual embedding model name (critical for search filtering)
                     chunk["embedding_model"] = chunk["model_group"].transform(get_embedding_model_name)
                 else:
                     LOGGER.info("Using default embedding")
-                    # Convert numpy array to list for proper pgvector serialization
-                    chunk["embedding"] = chunk["content"].call(code_to_embedding).transform(convert_embedding_to_list)
+                    # Embedding functions now return Python lists directly for pgvector compatibility
+                    chunk["embedding"] = chunk["content"].call(code_to_embedding)
                     # Store the default embedding model name
                     chunk["embedding_model"] = chunk["content"].transform(get_default_embedding_model_name)
 
