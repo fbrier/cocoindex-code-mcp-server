@@ -48,21 +48,24 @@ ENV HF_TOKEN=${HF_TOKEN}
 # Pre-download embedding models to avoid runtime downloads and rate limiting
 # This caches models in the Docker image so they're available offline
 # Uses HF_TOKEN if provided to bypass rate limiting
-RUN python -c "import os; from sentence_transformers import SentenceTransformer; \
-    token = os.environ.get('HF_TOKEN'); \
-    print('HF_TOKEN status:', 'provided' if token else 'not provided'); \
-    print('Attempting to download microsoft/unixcoder-base...'); \
-    try: \
-        SentenceTransformer('microsoft/unixcoder-base', use_auth_token=token if token else None); \
-        print('[OK] microsoft/unixcoder-base cached'); \
-    except Exception as e: \
-        print('[WARN] Could not download microsoft/unixcoder-base:', str(e)[:100]); \
-    try: \
-        SentenceTransformer('sentence-transformers/all-mpnet-base-v2', use_auth_token=token if token else None); \
-        print('[OK] all-mpnet-base-v2 cached'); \
-    except Exception as e: \
-        print('[WARN] Could not download all-mpnet-base-v2:', str(e)[:100]); \
-    print('Build complete - models will download at runtime if needed')" || true
+RUN python -c "\
+import os; \
+from sentence_transformers import SentenceTransformer; \
+hf_token = os.environ.get('HF_TOKEN'); \
+print('HF_TOKEN status:', 'provided' if hf_token else 'not provided'); \
+print('Attempting to download microsoft/unixcoder-base...'); \
+try: \
+    SentenceTransformer('microsoft/unixcoder-base', token=hf_token); \
+    print('[OK] microsoft/unixcoder-base cached'); \
+except Exception as e: \
+    print('[WARN] Could not download microsoft/unixcoder-base:', str(e)[:100]); \
+try: \
+    SentenceTransformer('sentence-transformers/all-mpnet-base-v2', token=hf_token); \
+    print('[OK] all-mpnet-base-v2 cached'); \
+except Exception as e: \
+    print('[WARN] Could not download all-mpnet-base-v2:', str(e)[:100]); \
+print('Build complete - models will download at runtime if needed'); \
+" || true
 
 # Unset HF_TOKEN after model download (security best practice)
 # It will be provided again at runtime via docker-compose environment variables
