@@ -22,6 +22,21 @@ jobs:
     name: Run Database Tests
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_USER: testuser
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -40,15 +55,25 @@ jobs:
         run: |
           uv pip install --system pytest pytest-cov pytest-asyncio psycopg[binary] pgvector numpy
 
+      - name: Verify pgvector extension
+        env:
+          PGPASSWORD: testpassword
+        run: |
+          # Verify PostgreSQL is ready
+          pg_isready -h localhost -p 5432 -U testuser
+          # Create pgvector extension if not exists
+          psql -h localhost -p 5432 -U testuser -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
+          psql -h localhost -p 5432 -U testuser -d testdb -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
+
       - name: Run database embedding tests
         env:
-          COCOINDEX_TEST_DB_HOST: solar.office.multideck.com
-          COCOINDEX_TEST_DB_PORT: 5532
-          COCOINDEX_TEST_DB_NAME: cocoindex
-          COCOINDEX_TEST_DB_USER: cocoindex
-          COCOINDEX_TEST_DB_PASSWORD: cocoindex
+          COCOINDEX_TEST_DB_HOST: localhost
+          COCOINDEX_TEST_DB_PORT: 5432
+          COCOINDEX_TEST_DB_NAME: testdb
+          COCOINDEX_TEST_DB_USER: testuser
+          COCOINDEX_TEST_DB_PASSWORD: testpassword
         run: |
-          pytest tests/test_embedding_database_insertion.py -v
+          pytest tests/test_embedding_database_insertion.py -v --tb=short
 
       - name: Upload test results
         if: always()

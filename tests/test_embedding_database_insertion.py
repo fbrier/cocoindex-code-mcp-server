@@ -33,6 +33,12 @@ def db_connection():
     conn_string = f"host={db_host} port={db_port} dbname={db_name} user={db_user} password={db_pass}"
 
     conn = psycopg.connect(conn_string)
+
+    # Ensure pgvector extension is installed
+    with conn.cursor() as cur:
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+        conn.commit()
+
     # Register pgvector type for this connection
     register_vector(conn)
 
