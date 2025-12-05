@@ -1068,6 +1068,41 @@ class ChunkDict(TypedDict):
 
 
 @cocoindex.op.function()
+def convert_embedding_to_list(embedding: NDArray[np.float32]) -> List[float]:
+    """
+    Convert numpy embedding array to Python list for pgvector compatibility.
+
+    CocoIndex's Postgres target doesn't automatically register pgvector type adapters,
+    so numpy arrays get serialized as JSON instead of pgvector format.
+    Converting to a Python list allows psycopg to properly serialize to vector type.
+
+    Args:
+        embedding: Numpy array embedding vector (768-dim for UniXcoder)
+
+    Returns:
+        Python list of floats compatible with pgvector
+
+    Raises:
+        TypeError: If embedding is not a numpy array
+    """
+    try:
+        if isinstance(embedding, np.ndarray):
+            result = embedding.tolist()
+            LOGGER.debug("✅ Converted numpy array embedding to list: %d dimensions", len(result))
+            return result
+        elif isinstance(embedding, list):
+            # Already a list, return as-is
+            LOGGER.debug("✅ Embedding already a list: %d dimensions", len(embedding))
+            return embedding
+        else:
+            LOGGER.error("❌ Unexpected embedding type: %s", type(embedding))
+            raise TypeError(f"Expected numpy array or list, got {type(embedding)}")
+    except Exception as e:
+        LOGGER.error("Failed to convert embedding to list: %s", e)
+        raise
+
+
+@cocoindex.op.function()
 def ensure_unique_chunk_locations(chunks) -> List[cocoindex.Json]:
     """
     Post-process chunks to ensure location fields are unique within the file.
@@ -1668,12 +1703,14 @@ def code_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoind
                 if use_smart_embedding and SMART_EMBEDDING_AVAILABLE:
                     # Use UniXcoder for all code - supports C#, Rust, TypeScript, Python, Java, etc.
                     LOGGER.info("Using UniXcoder smart embedding for %s", file["language"])
-                    chunk["embedding"] = chunk["content"].call(unixcoder_embedding)
+                    # Convert numpy array to list for proper pgvector serialization
+                    chunk["embedding"] = chunk["content"].call(unixcoder_embedding).transform(convert_embedding_to_list)
                     # Store the actual embedding model name (critical for search filtering)
                     chunk["embedding_model"] = chunk["model_group"].transform(get_embedding_model_name)
                 else:
                     LOGGER.info("Using default embedding")
-                    chunk["embedding"] = chunk["content"].call(code_to_embedding)
+                    # Convert numpy array to list for proper pgvector serialization
+                    chunk["embedding"] = chunk["content"].call(code_to_embedding).transform(convert_embedding_to_list)
                     # Store the default embedding model name
                     chunk["embedding_model"] = chunk["content"].transform(get_default_embedding_model_name)
 
