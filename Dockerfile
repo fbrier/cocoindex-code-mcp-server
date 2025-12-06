@@ -83,7 +83,6 @@ ENV REPOS_DIR=/repos \
 # Run the MCP server using uv run (activates virtual environment)
 # Scans both /repos and /code_fragments directories
 CMD ["uv", "run", "python", "-m", "cocoindex_code_mcp_server.main_mcp_server", \
-     "--rescan", \
      "--port", "3033", \
      "/repos", \
      "/code_fragments"]
