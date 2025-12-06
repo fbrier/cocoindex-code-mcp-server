@@ -1373,7 +1373,7 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
     # Get embedding as numpy array, then convert to Python list for pgvector
     embedding_array = try_embed(text)
     embedding_list = embedding_array.tolist()
-    LOGGER.info("✅ UniXcoder embedding converted to list: %d dimensions", len(embedding_list))
+    LOGGER.info("UniXcoder embedding converted to list: %d dimensions", len(embedding_list))
     return embedding_list
 
 
@@ -1406,7 +1406,7 @@ def fallback_embed_to_list(text: str) -> List[float]:
     model = SentenceTransformer(DEFAULT_TRANSFORMER_MODEL)
     embedding_array = model.encode(text, convert_to_numpy=True)
     embedding_list = embedding_array.tolist()
-    LOGGER.info("✅ Fallback embedding converted to list: %d dimensions", len(embedding_list))
+    LOGGER.info("Fallback embedding converted to list: %d dimensions", len(embedding_list))
     return embedding_list
 
 
