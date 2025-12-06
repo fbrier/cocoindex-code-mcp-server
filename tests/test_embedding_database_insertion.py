@@ -233,6 +233,109 @@ def test_embedding_similarity_search(db_connection, test_table):
     assert results[1][1] < results[2][1], "Distances should be ascending"
 
 
+def test_vector_search_with_python_list_query(db_connection, test_table):
+    """
+    Test that vector similarity search works when query embedding is a Python list.
+
+    This replicates the MCP server search-vector tool behavior where the query
+    embedding is generated as a Python list and must be cast to vector type.
+    """
+    # Insert a test embedding (Python list)
+    test_embedding = [1.0 if i < 100 else 0.0 for i in range(768)]
+
+    with db_connection.cursor() as cur:
+        cur.execute(
+            f"""
+            INSERT INTO {test_table} (content, embedding)
+            VALUES (%s, %s)
+        """,
+            ("test document", test_embedding),
+        )
+        db_connection.commit()
+
+    # Search with Python list query (this is what MCP server does)
+    query_embedding = [1.0 if i < 100 else 0.0 for i in range(768)]
+
+    # Test 1: Verify the error occurs without cast
+    with db_connection.cursor() as cur:
+        with pytest.raises(psycopg.errors.UndefinedFunction) as exc_info:
+            cur.execute(
+                f"""
+                SELECT content, embedding <=> %s AS distance
+                FROM {test_table}
+                ORDER BY distance
+                LIMIT 1
+            """,
+                (query_embedding,),
+            )
+
+        error_msg = str(exc_info.value)
+        assert "vector <=> double precision[]" in error_msg or "operator does not exist" in error_msg
+
+    # Rollback the failed transaction
+    db_connection.rollback()
+
+    # Test 2: Verify the fix works with ::vector cast
+    with db_connection.cursor() as cur:
+        cur.execute(
+            f"""
+            SELECT content, embedding <=> %s::vector AS distance
+            FROM {test_table}
+            ORDER BY distance
+            LIMIT 1
+        """,
+            (query_embedding,),
+        )
+        result = cur.fetchone()
+        assert result is not None, "Cast to vector should work"
+        assert result[0] == "test document"
+
+
+def test_search_without_register_vector_fails(test_table):
+    """
+    Test that search fails when register_vector() is not called on the connection.
+
+    This simulates the search code behavior - it may not have register_vector() called,
+    causing Python list query parameters to be treated as double precision[].
+    """
+    # Create connection WITHOUT register_vector()
+    db_host = os.getenv("COCOINDEX_TEST_DB_HOST", "solar.office.multideck.com")
+    db_port = os.getenv("COCOINDEX_TEST_DB_PORT", "5532")
+    db_name = os.getenv("COCOINDEX_TEST_DB_NAME", "cocoindex")
+    db_user = os.getenv("COCOINDEX_TEST_DB_USER", "cocoindex")
+    db_pass = os.getenv("COCOINDEX_TEST_DB_PASSWORD", "cocoindex")
+
+    conn_string = f"host={db_host} port={db_port} dbname={db_name} user={db_user} password={db_pass}"
+    conn = psycopg.connect(conn_string)
+    # NOTE: Deliberately NOT calling register_vector(conn)
+
+    try:
+        # First, we need to insert a test embedding using a connection WITH register_vector
+        # (Use the db_connection fixture for this by getting it dynamically)
+        # For simplicity, assume there's already data from previous tests
+
+        query_embedding = [1.0 if i < 100 else 0.0 for i in range(768)]
+
+        with conn.cursor() as cur:
+            # This MUST use ::vector cast or it will fail
+            with pytest.raises(psycopg.errors.UndefinedFunction) as exc_info:
+                cur.execute(
+                    f"""
+                    SELECT content, embedding <=> %s AS distance
+                    FROM {test_table}
+                    ORDER BY distance
+                    LIMIT 1
+                """,
+                    (query_embedding,),
+                )
+
+            error_msg = str(exc_info.value)
+            assert "vector <=> double precision[]" in error_msg or "operator does not exist" in error_msg
+
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     # Allow running tests directly
     pytest.main([__file__, "-v"])

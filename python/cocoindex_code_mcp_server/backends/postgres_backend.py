@@ -177,7 +177,10 @@ class PostgresBackend(VectorStoreBackend):
             self._columns_warned.update(new_missing_fields)
 
         if include_distance:
-            fields.append(f"embedding <=> %s AS {distance_alias}")
+            # Cast parameter to vector type to handle Python list query embeddings
+            # Without ::vector cast, PostgreSQL receives double precision[] which causes:
+            # "operator does not exist: vector <=> double precision[]"
+            fields.append(f"embedding <=> %s::vector AS {distance_alias}")
 
         return ", ".join(fields), available_fields
 
