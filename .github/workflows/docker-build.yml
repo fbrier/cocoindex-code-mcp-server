@@ -53,7 +53,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv pip install --system pytest pytest-cov pytest-asyncio psycopg[binary] pgvector numpy
+          # Install full project dependencies (includes cocoindex, sentence-transformers, etc.)
+          uv sync --all-extras
+          # Also install test dependencies
+          uv pip install pytest pytest-cov pytest-asyncio psycopg[binary] pgvector numpy
 
       - name: Verify pgvector extension
         env:
@@ -73,8 +76,8 @@ jobs:
           COCOINDEX_TEST_DB_USER: testuser
           COCOINDEX_TEST_DB_PASSWORD: testpassword
         run: |
-          pytest tests/test_embedding_database_insertion.py -v --tb=short
-          pytest tests/test_cocoindex_flow_execution.py -v --tb=short
+          uv run pytest tests/test_embedding_database_insertion.py -v --tb=short
+          uv run pytest tests/test_cocoindex_flow_execution.py -v --tb=short
 
       - name: Upload test results
         if: always()
