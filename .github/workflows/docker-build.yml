@@ -56,7 +56,7 @@ jobs:
           # Install full project dependencies (includes cocoindex, sentence-transformers, etc.)
           uv sync --all-extras
           # Also install test dependencies
-          uv pip install pytest pytest-cov pytest-asyncio psycopg[binary] pgvector numpy
+          uv pip install pytest pytest-cov pytest-asyncio psycopg[binary] pgvector numpy python-dotenv
 
       - name: Verify pgvector extension
         env:
