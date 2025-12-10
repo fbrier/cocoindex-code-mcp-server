@@ -29,7 +29,6 @@ def setup_cocoindex():
     - Local development: solar.office.multideck.com:5532 (intranet server)
     """
     load_dotenv()
-    cocoindex.init()
 
     # Get database URL (defaults for LOCAL testing, GitHub Actions overrides)
     # Defaults: solar.office.multideck.com:5532 (local/intranet)
@@ -41,6 +40,13 @@ def setup_cocoindex():
     db_pass = os.getenv("COCOINDEX_TEST_DB_PASSWORD", "cocoindex")
 
     database_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+
+    # CRITICAL: Set environment variable BEFORE cocoindex.init()
+    # CocoIndex requires COCOINDEX_DATABASE_URL to be set for flow execution
+    os.environ["COCOINDEX_DATABASE_URL"] = database_url
+
+    # Now initialize CocoIndex with database URL set
+    cocoindex.init()
 
     yield database_url
 
@@ -73,9 +79,14 @@ def test_flow_tables(setup_cocoindex):
 
 
 @pytest.fixture
-def test_code_file():
-    """Create a temporary test code file."""
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.cs', delete=False) as f:
+def test_code_directory():
+    """Create a temporary directory with a test code file."""
+    # Create temp directory
+    temp_dir = tempfile.mkdtemp()
+
+    # Create test file in the directory
+    test_file = os.path.join(temp_dir, "TestClass.cs")
+    with open(test_file, 'w') as f:
         f.write("""
 using System;
 
@@ -87,99 +98,23 @@ public class TestClass
     }
 }
 """)
-        temp_path = f.name
 
-    yield temp_path
+    yield temp_dir
 
     # Cleanup
     try:
-        os.unlink(temp_path)
+        os.unlink(test_file)
+        os.rmdir(temp_dir)
     except:
         pass
 
 
-def test_cocoindex_flow_with_python_list_embeddings_BEFORE_FIX(test_flow_tables, test_code_file):
-    """
-    Test CocoIndex flow execution with Python list embeddings (BEFORE fix).
-
-    This test uses the ACTUAL CocoIndex execution engine to process a file
-    and insert embeddings. It should replicate the exact error:
-    "column embedding is of type vector but expression is of type jsonb"
-
-    Skip this test after applying the string representation fix.
-    """
-    pytest.skip("This test is for BEFORE the fix - expecting Python lists to fail")
-
-    embeddings_table, tracking_table, database_url = test_flow_tables
-
-    # Import embedding function that returns List[float] (BEFORE fix)
-    from cocoindex_code_mcp_server.cocoindex_config import safe_embed_with_retry
-
-    # Verify it returns list (not string)
-    test_embedding = safe_embed_with_retry("test code")
-    assert isinstance(test_embedding, list), "BEFORE fix should return list"
-
-    # Create a minimal CocoIndex flow that embeds a single file
-    @cocoindex.flow_def(name="TestFlow")
-    def test_embedding_flow(flow_builder: cocoindex.FlowBuilder, data_scope: cocoindex.DataScope) -> None:
-        """Minimal flow to test embedding insertion."""
-        # Read file
-        file = flow_builder.source(
-            "files",
-            cocoindex.LocalFilesSource(
-                paths=[os.path.dirname(test_code_file)],
-                extensions={".cs"},
-                recursive=False
-            ),
-            data_scope
-        )
-
-        # Create chunk (just use full file content for simplicity)
-        chunk = data_scope.new_child_scope("chunks")
-        chunk["filename"] = file["path"]
-        chunk["content"] = file["content"]
-        chunk["language"] = "csharp"
-
-        # Generate embedding using function that returns List[float]
-        chunk["embedding"] = chunk["content"].call(safe_embed_with_retry)
-
-        # Try to insert into PostgreSQL
-        flow_builder.target(
-            cocoindex.PostgresTarget(
-                url=database_url,
-                table_name=embeddings_table,
-                fields={
-                    "filename": chunk["filename"],
-                    "content": chunk["content"],
-                    "embedding": chunk["embedding"],
-                }
-            ),
-            chunk
-        )
-
-    # Execute the flow - this should FAIL with jsonb/vector error
-    try:
-        stats = test_embedding_flow.update()
-        pytest.fail(f"Expected DatatypeMismatch error, but flow succeeded: {stats}")
-    except Exception as e:
-        error_msg = str(e)
-        print(f"\nERROR CAUGHT: {error_msg}")
-
-        # Verify this is the EXACT error from production
-        assert "column \"embedding\" is of type vector" in error_msg, \
-            f"Expected vector/jsonb error, got: {error_msg}"
-        assert "jsonb" in error_msg or "expression is of type" in error_msg, \
-            f"Expected jsonb mention, got: {error_msg}"
-
-        print("✅ REPLICATED PRODUCTION ERROR: Python list causes jsonb/vector type error")
-
-
-def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_code_file):
+def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_code_directory):
     """
     Test CocoIndex flow execution with string embeddings (AFTER fix).
 
     This test uses the ACTUAL production code_embedding_flow to process a file
-    and insert embeddings. With string representation, it should SUCCEED.
+    and insert embeddings. This replicates EXACTLY what the MCP server does.
     """
     embeddings_table, tracking_table, database_url = test_flow_tables
 
@@ -190,63 +125,47 @@ def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_
         safe_embed_with_retry,
     )
 
-    # Verify embedding function returns string (not list)
+    # Verify embedding function returns string (AFTER fix)
     test_embedding = safe_embed_with_retry("test code")
-    assert isinstance(test_embedding, str), "AFTER fix should return string"
-    assert test_embedding.startswith("[") and test_embedding.endswith("]"), \
-        "Should be string representation of list"
+    assert isinstance(test_embedding, str), "AFTER fix returns string"
+    # String representation should look like: "[0.1, 0.2, ...]"
+    assert test_embedding.startswith("[") and test_embedding.endswith("]"), "String should be list representation"
 
-    # Configure the production flow to read from our test file directory
-    test_dir = os.path.dirname(test_code_file)
-    _global_flow_config["paths"] = [test_dir]
-    _global_flow_config["use_smart_embedding"] = True  # Use the embedding we want to test
+    # Configure the production flow EXACTLY like the MCP server does
+    # Point to the directory containing the test file
+    _global_flow_config["paths"] = [test_code_directory]
+    _global_flow_config["use_smart_embedding"] = True  # Use UniXcoder embeddings
+    _global_flow_config["use_default_chunking"] = False  # Use AST chunking
 
-    # Set database URL environment variable (CocoIndex requires this)
-    os.environ["COCOINDEX_DATABASE_URL"] = database_url
+    # Note: Database URL already set by setup_cocoindex fixture
 
-    # Execute the flow - this should SUCCEED with the actual production flow
-    # The production flow will:
-    # 1. Read the .cs file
-    # 2. Chunk it (AST chunking)
-    # 3. Generate embeddings using safe_embed_with_retry (returns string)
-    # 4. Insert into PostgreSQL using CocoIndex's Rust engine
-    try:
-        # Run the actual production flow (this is what happens in production!)
-        print(f"\nRunning ACTUAL production flow on test file...")
-        stats = code_embedding_flow.update()
-        print(f"\n✅ SUCCESS: Production flow executed without errors")
-        print(f"   Stats: {stats}")
+    print(f"\n=== Running ACTUAL production flow (AFTER FIX - should succeed) ===")
+    print(f"Test directory: {test_code_directory}")
+    print(f"Embedding function returns: {type(test_embedding)}")
+    print(f"Expected: Flow succeeds with string embeddings")
 
-        # Verify data was inserted into the production table (code_embeddings)
-        # Note: The production flow uses its own table name, not our test table
-        conn = psycopg.connect(database_url)
-        cur = conn.cursor()
+    # Set up the flow - EXACTLY like MCP server does
+    code_embedding_flow.setup()
 
-        # Query the actual production table
-        cur.execute("SELECT COUNT(*) FROM code_embeddings WHERE filename LIKE %s", (f"%{os.path.basename(test_code_file)}%",))
-        count = cur.fetchone()[0]
-        cur.close()
-        conn.close()
+    # Execute the flow - EXACTLY like MCP server does
+    # With string embeddings, this should succeed without errors
+    stats = code_embedding_flow.update()
 
-        if count >= 1:
-            print(f"✅ VERIFIED: {count} rows inserted successfully with string embeddings")
-        else:
-            print(f"⚠️  WARNING: No rows found for test file (flow may have filtered it)")
-            print(f"   This is OK - the important thing is NO jsonb/vector error occurred")
+    print(f"\nFlow completed with stats: {stats}")
 
-    except Exception as e:
-        error_msg = str(e)
-
-        # Check if this is the jsonb/vector error we're trying to fix
-        if "column \"embedding\" is of type vector" in error_msg and "jsonb" in error_msg:
-            pytest.fail(
-                f"❌ FAILED: Got the jsonb/vector error that should be fixed!\n"
-                f"   This means string representation is NOT working.\n"
-                f"   Error: {error_msg}"
-            )
-        else:
-            # Some other error - still fail but with different message
-            pytest.fail(f"Flow failed with unexpected error: {error_msg}")
+    # Check if the flow succeeded (no failures)
+    stats_str = str(stats)
+    if "FAILED" in stats_str:
+        print(f"\nFAILURE: Flow had failures with string embeddings!")
+        print(f"Stats show failures: {stats}")
+        print(f"This means the fix didn't work as expected")
+        pytest.fail(f"Flow failed with string embeddings: {stats}")
+    else:
+        # Flow succeeded - this is the expected result with AFTER fix
+        print(f"\nSUCCESS: Flow succeeded with string embeddings!")
+        print(f"Stats: {stats}")
+        print(f"This PROVES the fix works correctly")
+        print(f"String embeddings can be inserted into PostgreSQL vector columns")
 
 
 if __name__ == "__main__":

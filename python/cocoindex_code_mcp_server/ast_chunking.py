@@ -238,7 +238,7 @@ class ASTChunkExecutor:
 
     def __call__(self, content: str, language: str = "auto") -> list[ASTChunkRow]:
         """Main chunking function - returns typed chunk structures for CocoIndex."""
-        LOGGER.info("🚀 ASTChunk called with language=%s, content_length=%s", language, len(content))
+        LOGGER.info("ASTChunk called with language=%s, content_length=%s", language, len(content))
 
         # Auto-detect language if needed
         if language == "auto":
