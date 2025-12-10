@@ -1263,12 +1263,12 @@ def promote_metadata_fields(metadata_json: str) -> Dict[str, Any]:
 @cocoindex.transform_flow()
 def code_to_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
     Default embedding using a SentenceTransformer model with caching.
 
     Returns:
-        DataSlice[List[float]]: 384-dimensional embedding vectors
+        DataSlice[NDArray[np.float32]]: 384-dimensional embedding vectors
     """
     return text.transform(fallback_embed_to_list)
 
@@ -1307,7 +1307,7 @@ _subprocess_model_lock = threading.Lock()
 
 
 @cocoindex.op.function()
-def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
+def safe_embed_with_retry(text: str, max_retries: int = 2) -> NDArray[np.float32]:
     """
     Embed text with automatic retry on token overflow.
 
@@ -1382,7 +1382,7 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
     UniXcoder embedding for code (C#, TypeScript, Rust, etc.).
 
@@ -1390,22 +1390,22 @@ def unixcoder_embedding(
     Handles edge cases where chunks exceed 512 tokens by splitting and averaging.
 
     Returns:
-        DataSlice[List[float]]: 768-dimensional embedding vectors
+        DataSlice[NDArray[np.float32]]: 768-dimensional embedding vectors
     """
     # Use custom function with retry logic instead of built-in
     return text.transform(safe_embed_with_retry)
 
 
 @cocoindex.op.function()
-def fallback_embed_to_list(text: str) -> List[float]:
+def fallback_embed_to_list(text: str) -> NDArray[np.float32]:
     """
-    Fallback embedding that returns string representation for pgvector compatibility.
+    Fallback embedding that returns array for pgvector compatibility.
 
-    Uses all-mpnet-base-v2 model and converts to string format.
-    Returns: "[0.1, 0.2, ...]" - PostgreSQL automatically casts to vector type
+    Uses all-mpnet-base-v2 model (384 dimensions).
+    Returns: NDArray[np.float32] for CocoIndex schema inference (creates vector column).
 
-    NOTE: Type annotation is List[float] for CocoIndex schema inference (creates vector column),
-    but runtime value is str for PostgreSQL insertion (auto-casts without register_vector).
+    NOTE: Type annotation NDArray[np.float32] tells CocoIndex to create vector column in PostgreSQL.
+    Runtime returns Python list which CocoIndex's Rust engine converts properly.
     """
     from sentence_transformers import SentenceTransformer
 
@@ -1419,14 +1419,14 @@ def fallback_embed_to_list(text: str) -> List[float]:
 @cocoindex.transform_flow()
 def fallback_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
     Fallback embedding for languages not supported by specialized models.
 
     Returns:
-        Python list of floats (384-dimensional) for pgvector compatibility
+        DataSlice[NDArray[np.float32]]: 384-dimensional embedding vectors
 
-    NOTE: Type annotation is DataSlice[List[float]] for schema inference, but runtime values are str.
+    NOTE: Type annotation NDArray[np.float32] for proper PostgreSQL vector column creation.
     """
     return text.transform(fallback_embed_to_list)
 
