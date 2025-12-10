@@ -74,6 +74,7 @@ jobs:
           COCOINDEX_TEST_DB_PASSWORD: testpassword
         run: |
           pytest tests/test_embedding_database_insertion.py -v --tb=short
+          pytest tests/test_cocoindex_flow_execution.py -v --tb=short
 
       - name: Upload test results
         if: always()
