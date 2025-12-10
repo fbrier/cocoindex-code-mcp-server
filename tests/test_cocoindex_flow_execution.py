@@ -125,11 +125,10 @@ def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_
         safe_embed_with_retry,
     )
 
-    # Verify embedding function returns string (AFTER fix)
+    # Verify embedding function returns list
     test_embedding = safe_embed_with_retry("test code")
-    assert isinstance(test_embedding, str), "AFTER fix returns string"
-    # String representation should look like: "[0.1, 0.2, ...]"
-    assert test_embedding.startswith("[") and test_embedding.endswith("]"), "String should be list representation"
+    assert isinstance(test_embedding, list), "Should return list"
+    assert len(test_embedding) == 768, f"Expected 768 dimensions, got {len(test_embedding)}"
 
     # Configure the production flow EXACTLY like the MCP server does
     # Point to the directory containing the test file
@@ -139,10 +138,10 @@ def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_
 
     # Note: Database URL already set by setup_cocoindex fixture
 
-    print(f"\n=== Running ACTUAL production flow (AFTER FIX - should succeed) ===")
+    print(f"\n=== Running ACTUAL production flow (should succeed) ===")
     print(f"Test directory: {test_code_directory}")
     print(f"Embedding function returns: {type(test_embedding)}")
-    print(f"Expected: Flow succeeds with string embeddings")
+    print(f"Expected: Flow succeeds")
 
     # Set up the flow - EXACTLY like MCP server does
     code_embedding_flow.setup()
@@ -156,16 +155,14 @@ def test_cocoindex_flow_with_string_embeddings_AFTER_FIX(test_flow_tables, test_
     # Check if the flow succeeded (no failures)
     stats_str = str(stats)
     if "FAILED" in stats_str:
-        print(f"\nFAILURE: Flow had failures with string embeddings!")
+        print(f"\nFAILURE: Flow had failures!")
         print(f"Stats show failures: {stats}")
-        print(f"This means the fix didn't work as expected")
-        pytest.fail(f"Flow failed with string embeddings: {stats}")
+        pytest.fail(f"Flow failed: {stats}")
     else:
-        # Flow succeeded - this is the expected result with AFTER fix
-        print(f"\nSUCCESS: Flow succeeded with string embeddings!")
+        # Flow succeeded
+        print(f"\nSUCCESS: Flow succeeded!")
         print(f"Stats: {stats}")
-        print(f"This PROVES the fix works correctly")
-        print(f"String embeddings can be inserted into PostgreSQL vector columns")
+        print(f"Embeddings successfully inserted into PostgreSQL vector columns")
 
 
 if __name__ == "__main__":
