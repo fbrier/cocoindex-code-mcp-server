@@ -1263,13 +1263,12 @@ def promote_metadata_fields(metadata_json: str) -> Dict[str, Any]:
 @cocoindex.transform_flow()
 def code_to_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[str]:
+) -> cocoindex.DataSlice[List[float]]:
     """
     Default embedding using a SentenceTransformer model with caching.
 
     Returns:
-        String representation of embedding: "[0.1, 0.2, ...]"
-        PostgreSQL automatically casts this to vector type
+        DataSlice[List[float]]: 384-dimensional embedding vectors
     """
     return text.transform(fallback_embed_to_list)
 
