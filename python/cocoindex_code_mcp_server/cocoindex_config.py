@@ -1263,12 +1263,13 @@ def promote_metadata_fields(metadata_json: str) -> Dict[str, Any]:
 @cocoindex.transform_flow()
 def code_to_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[str]:
     """
     Default embedding using a SentenceTransformer model with caching.
 
     Returns:
-        Python list of floats (384-dimensional) for pgvector compatibility
+        String representation of embedding: "[0.1, 0.2, ...]"
+        PostgreSQL automatically casts this to vector type
     """
     return text.transform(fallback_embed_to_list)
 
@@ -1307,7 +1308,7 @@ _subprocess_model_lock = threading.Lock()
 
 
 @cocoindex.op.function()
-def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
+def safe_embed_with_retry(text: str, max_retries: int = 2) -> str:
     """
     Embed text with automatic retry on token overflow.
 
@@ -1324,7 +1325,8 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
         max_retries: Maximum split depth (default: 2, allows 4x split)
 
     Returns:
-        768-dimensional embedding vector as Python list (for pgvector compatibility)
+        String representation of 768-dimensional embedding: "[0.1, 0.2, ...]"
+        PostgreSQL automatically casts this to vector type without needing register_vector()
     """
     global _subprocess_embedding_model
 
@@ -1370,17 +1372,19 @@ def safe_embed_with_retry(text: str, max_retries: int = 2) -> List[float]:
             # Average the embeddings
             return (left_emb + right_emb) / 2.0
 
-    # Get embedding as numpy array, then convert to Python list for pgvector
+    # Get embedding as numpy array, then convert to string for pgvector
+    # Format: "[0.1, 0.2, ...]" - PostgreSQL automatically casts to vector type
     embedding_array = try_embed(text)
     embedding_list = embedding_array.tolist()
-    LOGGER.info("UniXcoder embedding converted to list: %d dimensions", len(embedding_list))
-    return embedding_list
+    embedding_str = str(embedding_list)
+    LOGGER.info("UniXcoder embedding converted to string: %d dimensions", len(embedding_list))
+    return embedding_str
 
 
 @cocoindex.transform_flow()
 def unixcoder_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[str]:
     """
     UniXcoder embedding for code (C#, TypeScript, Rust, etc.).
 
@@ -1388,32 +1392,35 @@ def unixcoder_embedding(
     Handles edge cases where chunks exceed 512 tokens by splitting and averaging.
 
     Returns:
-        Python list of floats (768-dimensional) for pgvector compatibility
+        String representation of 768-dimensional embedding: "[0.1, 0.2, ...]"
+        PostgreSQL automatically casts this to vector type
     """
     # Use custom function with retry logic instead of built-in
     return text.transform(safe_embed_with_retry)
 
 
 @cocoindex.op.function()
-def fallback_embed_to_list(text: str) -> List[float]:
+def fallback_embed_to_list(text: str) -> str:
     """
-    Fallback embedding that returns Python list for pgvector compatibility.
+    Fallback embedding that returns string representation for pgvector compatibility.
 
-    Uses all-mpnet-base-v2 model and converts numpy array to list.
+    Uses all-mpnet-base-v2 model and converts to string format.
+    Returns: "[0.1, 0.2, ...]" - PostgreSQL automatically casts to vector type
     """
     from sentence_transformers import SentenceTransformer
 
     model = SentenceTransformer(DEFAULT_TRANSFORMER_MODEL)
     embedding_array = model.encode(text, convert_to_numpy=True)
     embedding_list = embedding_array.tolist()
-    LOGGER.info("Fallback embedding converted to list: %d dimensions", len(embedding_list))
-    return embedding_list
+    embedding_str = str(embedding_list)
+    LOGGER.info("Fallback embedding converted to string: %d dimensions", len(embedding_list))
+    return embedding_str
 
 
 @cocoindex.transform_flow()
 def fallback_embedding(
     text: cocoindex.DataSlice[str],
-) -> cocoindex.DataSlice[List[float]]:
+) -> cocoindex.DataSlice[str]:
     """
     Fallback embedding for languages not supported by specialized models.
 
