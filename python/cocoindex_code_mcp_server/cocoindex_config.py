@@ -1265,12 +1265,15 @@ def code_to_embedding(
     text: cocoindex.DataSlice[str],
 ) -> cocoindex.DataSlice[NDArray[np.float32]]:
     """
-    Default embedding using a SentenceTransformer model with caching.
+    Default embedding using a SentenceTransformer model.
+
+    Uses CocoIndex's built-in SentenceTransformerEmbed which properly creates vector columns.
 
     Returns:
         DataSlice[NDArray[np.float32]]: 384-dimensional embedding vectors
     """
-    return text.transform(fallback_embed_to_list)
+    # Use CocoIndex built-in function which properly handles vector column creation
+    return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2"))
 
 
 # Removed helper function that was causing DataScope context issues
@@ -1386,14 +1389,13 @@ def unixcoder_embedding(
     """
     UniXcoder embedding for code (C#, TypeScript, Rust, etc.).
 
-    Uses cached model with automatic retry on token overflow.
-    Handles edge cases where chunks exceed 512 tokens by splitting and averaging.
+    Uses CocoIndex's built-in SentenceTransformerEmbed which properly creates vector columns.
 
     Returns:
         DataSlice[NDArray[np.float32]]: 768-dimensional embedding vectors
     """
-    # Use custom function with retry logic instead of built-in
-    return text.transform(safe_embed_with_retry)
+    # Use CocoIndex built-in function which properly handles vector column creation
+    return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="microsoft/unixcoder-base"))
 
 
 @cocoindex.op.function()
@@ -1423,12 +1425,13 @@ def fallback_embedding(
     """
     Fallback embedding for languages not supported by specialized models.
 
+    Uses CocoIndex's built-in SentenceTransformerEmbed which properly creates vector columns.
+
     Returns:
         DataSlice[NDArray[np.float32]]: 384-dimensional embedding vectors
-
-    NOTE: Type annotation NDArray[np.float32] for proper PostgreSQL vector column creation.
     """
-    return text.transform(fallback_embed_to_list)
+    # Use CocoIndex built-in function which properly handles vector column creation
+    return text.transform(cocoindex.functions.SentenceTransformerEmbed(model="sentence-transformers/all-mpnet-base-v2"))
 
 
 # Language group to embedding model mapping for smart embedding
