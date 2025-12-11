@@ -68,6 +68,11 @@ jobs:
           psql -h localhost -p 5432 -U testuser -d testdb -c "CREATE EXTENSION IF NOT EXISTS vector;"
           psql -h localhost -p 5432 -U testuser -d testdb -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'vector';"
 
+      - name: Run unit tests (language normalization and parameter validation)
+        run: |
+          uv run pytest tests/test_language_normalization.py -v --tb=short
+          uv run pytest tests/test_parameter_validation.py -v --tb=short
+
       - name: Run database embedding tests
         env:
           COCOINDEX_TEST_DB_HOST: localhost

@@ -65,6 +65,7 @@ from .cocoindex_config import code_to_embedding, run_flow_update, update_flow_co
 from .db.pgvector.hybrid_search import HybridSearchEngine
 from .keyword_search_parser_lark import KeywordSearchParser
 from .lang.python.python_code_analyzer import analyze_python_code
+from .language_normalizer import get_valid_languages, normalize_language
 
 try:
     from coverage import Coverage
@@ -225,13 +226,13 @@ def get_mcp_tools() -> list[types.Tool]:
     return [
         types.Tool(
             name="search-hybrid",
-            description="Perform hybrid search combining vector similarity and keyword metadata filtering. Keyword syntax: field:value, exists(field), value_contains(field, 'text'), multiple terms are AND ed, use parentheses for OR.",
+            description="Perform hybrid search combining vector similarity and keyword metadata filtering. Language parameter accepts common variations (case-insensitive): 'csharp'/'cs' -> 'C#', 'cpp' -> 'C++', 'py' -> 'Python', etc. Keyword syntax: field:value, exists(field), value_contains(field, 'text'), multiple terms are AND ed, use parentheses for OR. Either 'language' or 'embedding_model' is required.",
             inputSchema=mcp_json_schemas.HYBRID_SEARCH_INPUT_SCHEMA,
             # outputSchema=mcp_json_schemas.HYBRID_SEARCH_OUTPUT_SCHEMA
         ),
         types.Tool(
             name="search-vector",
-            description="Perform pure vector similarity search",
+            description="Perform pure vector similarity search. Language parameter accepts common variations (case-insensitive): 'csharp'/'cs' -> 'C#', 'cpp' -> 'C++', 'py' -> 'Python', etc. Either 'language' or 'embedding_model' is required.",
             inputSchema=mcp_json_schemas.VECTOR_SEARCH_INPUT_SCHEMA,
         ),
         types.Tool(
@@ -666,6 +667,22 @@ def main(
         language = arguments.get("language")
         embedding_model = arguments.get("embedding_model")
 
+        # Normalize language parameter (case-insensitive, accepts variations)
+        if language:
+            try:
+                language = normalize_language(language)
+            except ValueError as e:
+                raise ValueError(str(e))
+
+        # Validate: either language or embedding_model required for vector component
+        if not language and not embedding_model:
+            valid_langs = ', '.join(get_valid_languages())
+            raise ValueError(
+                f"Either 'language' or 'embedding_model' parameter is required for hybrid search.\n\n"
+                f"Valid languages: {valid_langs}\n"
+                f"(Case-insensitive; common variations accepted: 'csharp'/'cs' -> 'C#', 'cpp' -> 'C++', 'py' -> 'Python')"
+            )
+
         try:
             if hybrid_search_engine is not None:
                 results = hybrid_search_engine.search(
@@ -713,6 +730,22 @@ def main(
         top_k = arguments.get("top_k", 10)
         language = arguments.get("language")
         embedding_model = arguments.get("embedding_model")
+
+        # Normalize language parameter (case-insensitive, accepts variations)
+        if language:
+            try:
+                language = normalize_language(language)
+            except ValueError as e:
+                raise ValueError(str(e))
+
+        # Validate: either language or embedding_model required
+        if not language and not embedding_model:
+            valid_langs = ', '.join(get_valid_languages())
+            raise ValueError(
+                f"Either 'language' or 'embedding_model' parameter is required for vector search.\n\n"
+                f"Valid languages: {valid_langs}\n"
+                f"(Case-insensitive; common variations accepted: 'csharp'/'cs' -> 'C#', 'cpp' -> 'C++', 'py' -> 'Python')"
+            )
 
         if hybrid_search_engine is not None:
             results = hybrid_search_engine.search(
