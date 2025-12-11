@@ -1970,8 +1970,17 @@ def run_flow_update(live_update: bool = False, poll_interval: int = 30) -> None:
 
     else:
         # Regular one-time update mode
-        stats = code_embedding_flow.update()
-        LOGGER.info("Updated index: %s", stats)
+        flow = code_embedding_flow
+
+        # Setup the flow first (creates database schema if needed)
+        LOGGER.info("🔧 Running flow setup to ensure schema is up-to-date...")
+        flow.setup()
+        LOGGER.info("✅ Flow setup completed")
+
+        # Run update
+        LOGGER.info("🚀 Running flow update...")
+        stats = flow.update()
+        LOGGER.info("✅ Updated index: %s", stats)
 
 
 def update_specific_flow_config(
